@@ -13,3 +13,8 @@ run sh install-gazebo.sh
 
 copy ./configure-mesa.sh .
 run sh configure-mesa.sh
+
+copy ./install-ros-and-ros-gz-bridge.sh .
+run sh install-ros-and-ros-gz-bridge.sh
+
+run rm -rf /var/lib/apt/lists/*
