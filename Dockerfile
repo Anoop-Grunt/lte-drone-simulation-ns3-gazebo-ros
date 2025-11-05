@@ -17,4 +17,7 @@ run sh configure-mesa.sh
 copy ./install-ros-and-ros-gz-bridge.sh .
 run sh install-ros-and-ros-gz-bridge.sh
 
+copy ./install-ninja.sh
+run sh install-ninja.sh
+
 run rm -rf /var/lib/apt/lists/*
