@@ -17,7 +17,15 @@ run sh configure-mesa.sh
 copy ./install-ros-and-ros-gz-bridge.sh .
 run sh install-ros-and-ros-gz-bridge.sh
 
-copy ./install-ninja.sh
+copy ./install-ninja.sh .
 run sh install-ninja.sh
+
+copy ./install-git.sh .
+run sh ./install-git.sh
+
+copy ./variables.sh .
+copy ./build-netsim.sh .
+copy ./install-ns3.sh .
+run sh install-ns3.sh .
 
 run rm -rf /var/lib/apt/lists/*
