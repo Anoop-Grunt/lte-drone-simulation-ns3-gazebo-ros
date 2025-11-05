@@ -1,3 +1,4 @@
+
 #include "geometry_msgs/msg/twist.hpp"
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -8,9 +9,12 @@
 #include "ns3/point-to-point-module.h"
 #include "rclcpp/rclcpp.hpp"
 
-using namespace ns3;
+#include <thread>
 
-NS_LOG_COMPONENT_DEFINE("LteRos2Example");
+using namespace ns3;
+using namespace std::chrono_literals;
+
+NS_LOG_COMPONENT_DEFINE("LteRos2RealtimeExample");
 
 class Ns3RosPublisher : public rclcpp::Node {
 public:
@@ -20,17 +24,12 @@ public:
   }
 
   void publishTwist(double linear_x, double angular_z) {
-    auto message = geometry_msgs::msg::Twist();
-    message.linear.x = linear_x;
-    message.linear.y = 0.0;
-    message.linear.z = 0.0;
-    message.angular.x = 0.0;
-    message.angular.y = 0.0;
-    message.angular.z = angular_z;
-
+    geometry_msgs::msg::Twist msg;
+    msg.linear.x = linear_x;
+    msg.angular.z = angular_z;
     RCLCPP_INFO(this->get_logger(), "Publishing: linear.x=%.2f, angular.z=%.2f",
                 linear_x, angular_z);
-    publisher_->publish(message);
+    publisher_->publish(msg);
   }
 
 private:
@@ -38,93 +37,90 @@ private:
 };
 
 int main(int argc, char *argv[]) {
-  // Initialize ROS2
+  // Initialize ROS 2
   rclcpp::init(argc, argv);
   auto ros_node = std::make_shared<Ns3RosPublisher>();
 
-  // NS-3 simulation parameters
-  double simTime = 10.0;
+  // Enable real-time simulation
+  GlobalValue::Bind("SimulatorImplementationType",
+                    StringValue("ns3::RealtimeSimulatorImpl"));
+  GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
+
+  double simTime = 100.0;
   uint16_t numberOfNodes = 2;
 
-  // Create LTE helper objects
+  // NS-3 setup
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
   Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
   lteHelper->SetEpcHelper(epcHelper);
 
-  // Get PGW node
   Ptr<Node> pgw = epcHelper->GetPgwNode();
-
-  // Create remote host
   NodeContainer remoteHostContainer;
   remoteHostContainer.Create(1);
   Ptr<Node> remoteHost = remoteHostContainer.Get(0);
   InternetStackHelper internet;
   internet.Install(remoteHostContainer);
 
-  // Connect remote host to PGW
   PointToPointHelper p2ph;
   p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
   p2ph.SetDeviceAttribute("Mtu", UintegerValue(1500));
   p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
   NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
-
   Ipv4AddressHelper ipv4h;
   ipv4h.SetBase("1.0.0.0", "255.0.0.0");
-  Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
+  ipv4h.Assign(internetDevices);
 
-  // Create eNB and UE nodes
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(1);
   ueNodes.Create(numberOfNodes);
-
-  // Install mobility
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(enbNodes);
   mobility.Install(ueNodes);
 
-  // Install LTE devices
   NetDeviceContainer enbLteDevs = lteHelper->InstallEnbDevice(enbNodes);
   NetDeviceContainer ueLteDevs = lteHelper->InstallUeDevice(ueNodes);
-
-  // Install Internet stack on UEs
   internet.Install(ueNodes);
-  Ipv4InterfaceContainer ueIpIface;
-  ueIpIface = epcHelper->AssignUeIpv4Address(NetDeviceContainer(ueLteDevs));
+  epcHelper->AssignUeIpv4Address(NetDeviceContainer(ueLteDevs));
 
-  // Attach UEs to eNB
   for (uint16_t i = 0; i < numberOfNodes; i++) {
     lteHelper->Attach(ueLteDevs.Get(i), enbLteDevs.Get(0));
   }
 
-  // Schedule ROS2 Twist message publishing from NS-3 simulation
-  Simulator::Schedule(Seconds(1.0), [&ros_node]() {
-    ros_node->publishTwist(0.5, 0.0); // Move forward
-  });
+  // Start a background thread to keep ROS spinning
+  std::thread ros_spin_thread([&]() { rclcpp::spin(ros_node); });
 
-  Simulator::Schedule(Seconds(3.0), [&ros_node]() {
-    ros_node->publishTwist(0.3, 0.5); // Move forward while turning
-  });
-
-  Simulator::Schedule(Seconds(5.0), [&ros_node]() {
-    ros_node->publishTwist(0.0, 1.0); // Rotate in place
-  });
-
-  Simulator::Schedule(Seconds(7.0), [&ros_node]() {
-    ros_node->publishTwist(0.0, 0.0); // Stop
-  });
-
-  NS_LOG_INFO("Starting simulation...");
+  // Schedule Twist publishing in ns-3 time (real-time aligned)
+  Simulator::Schedule(Seconds(5.0),
+                      [ros_node]() { ros_node->publishTwist(0.5, 0.0); });
+  Simulator::Schedule(Seconds(15.0),
+                      [ros_node]() { ros_node->publishTwist(0.3, 0.5); });
+  Simulator::Schedule(Seconds(25.0),
+                      [ros_node]() { ros_node->publishTwist(0.0, 1.0); });
+  Simulator::Schedule(Seconds(35.0),
+                      [ros_node]() { ros_node->publishTwist(0.0, 0.0); });
+  Simulator::Schedule(Seconds(45.0),
+                      [ros_node]() { ros_node->publishTwist(0.5, 0.0); });
+  Simulator::Schedule(Seconds(55.0),
+                      [ros_node]() { ros_node->publishTwist(0.2, -0.3); });
+  Simulator::Schedule(Seconds(65.0),
+                      [ros_node]() { ros_node->publishTwist(0.0, 0.5); });
+  Simulator::Schedule(Seconds(75.0),
+                      [ros_node]() { ros_node->publishTwist(0.0, 0.0); });
+  Simulator::Schedule(Seconds(85.0),
+                      [ros_node]() { ros_node->publishTwist(0.4, 0.0); });
+  Simulator::Schedule(Seconds(95.0),
+                      [ros_node]() { ros_node->publishTwist(0.0, -0.5); });
+  NS_LOG_INFO("Running simulation in real-time mode...");
   Simulator::Stop(Seconds(simTime));
   Simulator::Run();
 
-  // Spin ROS2 for a moment to ensure messages are sent
-  rclcpp::spin_some(ros_node);
+  NS_LOG_INFO("Simulation complete, shutting down ROS2...");
+  rclcpp::shutdown();
+  if (ros_spin_thread.joinable())
+    ros_spin_thread.join();
 
   Simulator::Destroy();
-  rclcpp::shutdown();
-
-  NS_LOG_INFO("Simulation finished.");
   return 0;
 }

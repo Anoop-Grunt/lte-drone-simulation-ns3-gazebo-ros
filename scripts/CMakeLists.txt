@@ -2,6 +2,7 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 file(GLOB ros_sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+
 build_exec(
   EXECNAME robot_sim
   EXECNAME_PREFIX scratch_ros_scripts_

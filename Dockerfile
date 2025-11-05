@@ -28,4 +28,9 @@ copy ./build-netsim.sh .
 copy ./install-ns3.sh .
 run sh install-ns3.sh .
 
+copy ./download-world.sh .
+run sh ./download-world.sh
+
 run rm -rf /var/lib/apt/lists/*
+
+
