@@ -1,7 +1,7 @@
 
 import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, ExecuteProcess
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
@@ -16,36 +16,34 @@ def generate_launch_description():
         default='/root/.gz/fuel/fuel.gazebosim.org/openrobotics/worlds/quadcopter_teleop/1/world.sdf'
     )
 
-    ns3_executable = '/app/ns3-source/build/scratch/ros_scripts/ns3-dev-robot_sim-default'
-
     # --- 2. Launch Gazebo Sim with specified world ---
-    
-
     gazebo_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')
         ),
         launch_arguments={
-            'gz_args': [ world_sdf_file]
+            'gz_args': [world_sdf_file]
         }.items()
     )
-   # --- 3. Launch Parameter Bridge for /X3/cmd_vel ---
 
+    # --- 3. Launch Parameter Bridge for /X3/cmd_vel ---
     cmd_vel_bridge = Node(
-    package='ros_gz_bridge',
-    executable='parameter_bridge',
-    name='cmd_vel_bridge',
-    output='screen',
-    arguments=[
-        '/X3/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist'
-    ]
-)
-    # --- 4. Launch NS-3 executable directly ---
-    ns3_node = ExecuteProcess(
-        cmd=[ns3_executable],
-        name='ns3_ros_publisher',
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='cmd_vel_bridge',
         output='screen',
-        shell=True
+        arguments=[
+            '/X3/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist'
+        ]
+    )
+
+    # --- 4. Launch NS-3 ROS node ---
+    ns3_node = Node(
+        package='ros_network',        # ROS package containing your NS3 node
+        executable='ns3_ros_node',   # the ROS 2 node executable
+        name='ns3_ros_node',
+        output='screen',
+        emulate_tty=True             # optional, makes output nicer
     )
 
     # --- 5. Assemble Launch Description ---

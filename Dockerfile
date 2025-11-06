@@ -31,6 +31,18 @@ run sh install-ns3.sh .
 copy ./download-world.sh .
 run sh ./download-world.sh
 
+copy  ./install-colcon.sh .
+run sh ./install-colcon.sh
+
+copy ./setup-ros-network-node.sh .
+run bash ./setup-ros-network-node.sh 
+
+
+copy ./ros_network/CMakeLists.txt ./ros_network/
+copy ./scripts/main.cc ./ros_network/src/
+copy ./build-ros-nodes.sh .
+run bash ./build-ros-nodes.sh 
+
 run rm -rf /var/lib/apt/lists/*
 
 

@@ -18,11 +18,6 @@ docker run -ti \
   gz-ros-harmonic\
   bash -c "mkdir -p /run/user/0 && chmod 0700 /run/user/0 && \
            source /opt/ros/jazzy/setup.bash && \
-           ${NS3_SOURCE_DIR}/ns3 configure -G Ninja \
-             --enable-examples \
-             --enable-modules='core;network;internet;mobility;lte;propagation;spectrum;buildings;config-store;netanim;'\
-             --disable-modules='' \
-             --disable-tests --disable-gsl --disable-mpi  && \
-           ${NS3_SOURCE_DIR}/ns3 build robot_sim && \
+           source /app/install/setup.bash && \
            ros2 launch /tmp/sim_and_bridge.launch.py > /tmp/gazebo.log 2>&1 & \
            bash"
