@@ -8,7 +8,7 @@
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
 #include "rclcpp/rclcpp.hpp"
-
+#include "tf2_msgs/msg/tf_message.hpp"
 #include <thread>
 
 using namespace ns3;
@@ -16,11 +16,17 @@ using namespace std::chrono_literals;
 
 NS_LOG_COMPONENT_DEFINE("LteRos2RealtimeExample");
 
-class Ns3RosPublisher : public rclcpp::Node {
+class Ns3RosNode : public rclcpp::Node {
 public:
-  Ns3RosPublisher() : Node("ns3_twist_publisher") {
+  Ns3RosNode() : Node("ns3_twist_publisher") {
+    // Publisher to Gazebo teleop
     publisher_ =
         this->create_publisher<geometry_msgs::msg::Twist>("/X3/cmd_vel", 10);
+
+    // Subscriber to world pose topic (change topic name if needed)
+    pose_sub_ = this->create_subscription<tf2_msgs::msg::TFMessage>(
+        "/world/quadcopter_teleop/pose/info", 10,
+        std::bind(&Ns3RosNode::poseCallback, this, std::placeholders::_1));
   }
 
   void publishTwist(double linear_x, double angular_z) {
@@ -33,13 +39,21 @@ public:
   }
 
 private:
+  void poseCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg) {
+    for (size_t i = 0; i < msg->transforms.size(); ++i) {
+      const auto &t = msg->transforms[i].transform;
+      RCLCPP_INFO(this->get_logger(), "Model %zu: x=%.3f, y=%.3f, z=%.3f", i,
+                  t.translation.x, t.translation.y, t.translation.z);
+    }
+  }
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
+  rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr pose_sub_;
 };
 
 int main(int argc, char *argv[]) {
   // Initialize ROS 2
   rclcpp::init(argc, argv);
-  auto ros_node = std::make_shared<Ns3RosPublisher>();
+  auto ros_node = std::make_shared<Ns3RosNode>();
 
   // Enable real-time simulation
   GlobalValue::Bind("SimulatorImplementationType",
@@ -98,20 +112,7 @@ int main(int argc, char *argv[]) {
                       [ros_node]() { ros_node->publishTwist(0.3, 0.5); });
   Simulator::Schedule(Seconds(25.0),
                       [ros_node]() { ros_node->publishTwist(0.0, 1.0); });
-  Simulator::Schedule(Seconds(35.0),
-                      [ros_node]() { ros_node->publishTwist(0.0, 0.0); });
-  Simulator::Schedule(Seconds(45.0),
-                      [ros_node]() { ros_node->publishTwist(0.5, 0.0); });
-  Simulator::Schedule(Seconds(55.0),
-                      [ros_node]() { ros_node->publishTwist(0.2, -0.3); });
-  Simulator::Schedule(Seconds(65.0),
-                      [ros_node]() { ros_node->publishTwist(0.0, 0.5); });
-  Simulator::Schedule(Seconds(75.0),
-                      [ros_node]() { ros_node->publishTwist(0.0, 0.0); });
-  Simulator::Schedule(Seconds(85.0),
-                      [ros_node]() { ros_node->publishTwist(0.4, 0.0); });
-  Simulator::Schedule(Seconds(95.0),
-                      [ros_node]() { ros_node->publishTwist(0.0, -0.5); });
+
   NS_LOG_INFO("Running simulation in real-time mode...");
   Simulator::Stop(Seconds(simTime));
   Simulator::Run();

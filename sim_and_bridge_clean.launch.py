@@ -26,7 +26,7 @@ def generate_launch_description():
         }.items()
     )
 
-    # --- 3. Launch Parameter Bridge for /X3/cmd_vel ---
+    # --- 3. Bridge for /X3/cmd_vel ---
     cmd_vel_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -37,16 +37,27 @@ def generate_launch_description():
         ]
     )
 
-    # --- 4. Launch NS-3 ROS node ---
-    ns3_node = Node(
-        package='ros_network',        # ROS package containing your NS3 node
-        executable='ns3_ros_node',   # the ROS 2 node executable
-        name='ns3_ros_node',
+    # --- 4. Bridge for Gazebo pose updates ---
+    pose_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='pose_bridge',
         output='screen',
-        emulate_tty=True             # optional, makes output nicer
+        arguments=[
+            '/world/quadcopter_teleop/pose/info@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V'
+        ]
     )
 
-    # --- 5. Assemble Launch Description ---
+    # --- 5. Launch NS-3 ROS node ---
+    ns3_node = Node(
+        package='ros_network',        # ROS package containing your NS3 node
+        executable='ns3_ros_node',   # your custom NS-3 ROS node
+        name='ns3_ros_node',
+        output='screen',
+        emulate_tty=True
+    )
+
+    # --- 6. Assemble Launch Description ---
     return LaunchDescription([
         DeclareLaunchArgument(
             'world_sdf_file',
@@ -55,6 +66,7 @@ def generate_launch_description():
         ),
         gazebo_sim,
         cmd_vel_bridge,
+        pose_bridge,
         ns3_node
     ])
 
