@@ -42,6 +42,8 @@ copy ./scripts/main.cc ./ros_network/src/
 copy ./build-ros-nodes.sh .
 run bash ./build-ros-nodes.sh 
 
+copy ./world.sdf .
+
 run rm -rf /var/lib/apt/lists/*
 
 

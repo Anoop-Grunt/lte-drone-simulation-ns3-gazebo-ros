@@ -13,7 +13,7 @@ def generate_launch_description():
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     world_sdf_file = LaunchConfiguration(
         'world_sdf_file',
-        default='/root/.gz/fuel/fuel.gazebosim.org/openrobotics/worlds/quadcopter_teleop/1/world.sdf'
+        default='/app/world.sdf'
     )
 
     # --- 2. Launch Gazebo Sim with specified world ---
@@ -61,7 +61,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'world_sdf_file',
-            default_value='/root/.gz/fuel/fuel.gazebosim.org/openrobotics/worlds/quadcopter_teleop/1/world.sdf',
+            default_value='/app/world.sdf',
             description='SDF file to load in Gazebo Sim'
         ),
         gazebo_sim,

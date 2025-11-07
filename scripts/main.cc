@@ -40,12 +40,28 @@ public:
 
 private:
   void poseCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg) {
-    for (size_t i = 0; i < msg->transforms.size(); ++i) {
-      const auto &t = msg->transforms[i].transform;
-      RCLCPP_INFO(this->get_logger(), "Model %zu: x=%.3f, y=%.3f, z=%.3f", i,
-                  t.translation.x, t.translation.y, t.translation.z);
+    for (const auto &transform : msg->transforms) {
+      // Each transform has:
+      // - header.frame_id     → usually "world" or the parent frame
+      // - child_frame_id      → name of the model or link (e.g.,
+      // "X3::base_link")
+      std::string model_name = transform.child_frame_id;
+
+      // If you want only top-level models (not links inside them)
+      auto pos = model_name.find("::");
+      if (pos != std::string::npos) {
+        model_name = model_name.substr(0, pos);
+      }
+
+      RCLCPP_INFO(rclcpp::get_logger("pose_callback"),
+                  "Model: %s | Parent: %s | Position: [%.2f, %.2f, %.2f]",
+                  model_name.c_str(), transform.header.frame_id.c_str(),
+                  transform.transform.translation.x,
+                  transform.transform.translation.y,
+                  transform.transform.translation.z);
     }
   }
+
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr pose_sub_;
 };
