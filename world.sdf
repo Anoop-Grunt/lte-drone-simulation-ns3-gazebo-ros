@@ -1,5 +1,4 @@
-
-<?xml version="1.0" ?>
+<?xml version="1.0"?>
 
 <sdf version="1.6">
   <world name="quadcopter_teleop">
@@ -62,8 +61,8 @@
 
           <property type="string" key="state">floating</property>
           <anchors target="3D View">
-            <line own="left" target="left"/>
-            <line own="bottom" target="bottom"/>
+            <line own="left" target="left" />
+            <line own="bottom" target="bottom" />
           </anchors>
         </ignition-gui>
 
@@ -85,8 +84,8 @@
 
           <property type="string" key="state">floating</property>
           <anchors target="3D View">
-            <line own="right" target="right"/>
-            <line own="bottom" target="bottom"/>
+            <line own="right" target="right" />
+            <line own="bottom" target="bottom" />
           </anchors>
         </ignition-gui>
 
@@ -204,8 +203,8 @@
         <motorType>velocity</motorType>
       </plugin>
       <plugin
-        filename="ignition-gazebo-multicopter-control-system"
-        name="ignition::gazebo::systems::MulticopterVelocityControl">
+        filename="gz-sim-multicopter-control-system"
+        name="gz::sim::systems::MulticopterVelocityControl">
         <robotNamespace>X3</robotNamespace>
         <commandSubTopic>cmd_vel</commandSubTopic>
         <enableSubTopic>enable</enableSubTopic>
@@ -241,6 +240,14 @@
             <direction>-1</direction>
           </rotor>
         </rotorConfiguration>
+      </plugin>
+      <plugin
+        filename="gz-sim-pose-publisher-system"
+        name="gz::sim::systems::PosePublisher">
+        <publish_link_pose>true</publish_link_pose>
+        <use_pose_vector_msg>true</use_pose_vector_msg>
+        <publish_model_pose>true</publish_model_pose>
+        <update_frequency>10</update_frequency>
       </plugin>
     </include>
 

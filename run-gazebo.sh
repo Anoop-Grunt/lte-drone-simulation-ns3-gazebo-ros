@@ -15,6 +15,7 @@ docker run -ti \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v $(pwd)/sim_and_bridge_clean.launch.py:/tmp/sim_and_bridge.launch.py \
   -v $(pwd)/scripts/:/app/${NS3_SOURCE_DIR}/scratch/ros_scripts/ \
+  -v $(pwd)/world.sdf/:/app/world.sdf \
   gz-ros-harmonic\
   bash -c "mkdir -p /run/user/0 && chmod 0700 /run/user/0 && \
            source /opt/ros/jazzy/setup.bash && \
