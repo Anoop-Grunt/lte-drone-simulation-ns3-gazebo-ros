@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
   MobilityHelper ueMobility;
   ueMobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   ueMobility.Install(ueNodes);
-  ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(150, 150, 0));
+  ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(0, 0, 0));
 
   NetDeviceContainer enbLteDevs = lteHelper->InstallEnbDevice(enbNodes);
   NetDeviceContainer ueLteDevs = lteHelper->InstallUeDevice(ueNodes);
@@ -174,11 +174,25 @@ int main(int argc, char *argv[]) {
   ulClientApps.Stop(Seconds(simTime));
 
   // NetAnim visualization
-  AnimationInterface anim("ns3_ros2.xml");
+  AnimationInterface anim("network_animations/ns3_ros2.xml");
+
+  // Assign readable labels for NetAnim visualization
+  anim.UpdateNodeDescription(enbNodes.Get(0), "eNodeB 0");
+  anim.UpdateNodeDescription(enbNodes.Get(1), "eNodeB 1");
+  anim.UpdateNodeDescription(enbNodes.Get(2), "eNodeB 2");
+  anim.UpdateNodeDescription(ueNodes.Get(0), "UE X3");
+
+  // Optional: color them differently
+  anim.UpdateNodeColor(enbNodes.Get(0), 255, 0, 0);   // red for eNodeB 0
+  anim.UpdateNodeColor(enbNodes.Get(1), 255, 100, 0); // orange for eNodeB 1
+  anim.UpdateNodeColor(enbNodes.Get(2), 255, 200, 0); // yellow for eNodeB 2
+  anim.UpdateNodeColor(ueNodes.Get(0), 0, 0, 255);    // blue for UE
+
+  // Fixed positions for visualization
   anim.SetConstantPosition(enbNodes.Get(0), 0, 0);
   anim.SetConstantPosition(enbNodes.Get(1), 300, 0);
   anim.SetConstantPosition(enbNodes.Get(2), 150, 300);
-
+  anim.SetConstantPosition(ueNodes.Get(0), 150, 150);
   // ROS2 node (optional, in background)
   auto ros_node = std::make_shared<Ns3RosNode>();
   ros_node->setUeNode(ueNodes.Get(0));
