@@ -16,9 +16,10 @@ docker run -ti \
   -v $(pwd)/sim_and_bridge_clean.launch.py:/tmp/sim_and_bridge.launch.py \
   -v $(pwd)/scripts/:/app/${NS3_SOURCE_DIR}/scratch/ros_scripts/ \
   -v $(pwd)/world.sdf/:/app/world.sdf \
+  -v $(pwd)/network_animations/:/app/network_animations/ \
   gz-ros-harmonic\
   bash -c "mkdir -p /run/user/0 && chmod 0700 /run/user/0 && \
            source /opt/ros/jazzy/setup.bash && \
            source /app/install/setup.bash && \
-           ros2 launch /tmp/sim_and_bridge.launch.py > /tmp/gazebo.log 2>&1 & \
+           ros2 launch /tmp/sim_and_bridge.launch.py  & \
            bash"
