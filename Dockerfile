@@ -34,11 +34,18 @@ run sh ./download-world.sh
 copy  ./install-colcon.sh .
 run sh ./install-colcon.sh
 
-copy ./setup-ros-network-node.sh .
+copy ./ros_network/setup-ros-network-node.sh .
 run bash ./setup-ros-network-node.sh 
 
 copy ./ros_network/CMakeLists.txt ./ros_network/
-copy ./scripts/main.cc ./ros_network/src/
+copy ./ros_network/main.cc ./ros_network/src/
+
+copy ./remote_server_nodes/setup_remote_server_nodes.sh .
+run bash ./setup_remote_server_nodes.sh
+
+copy ./remote_server_nodes/quadcopter_pilot.py ./remote_server_nodes/remote_server_nodes/
+copy ./remote_server_nodes/setup.py ./remote_server_nodes/
+
 copy ./build-ros-nodes.sh .
 run bash ./build-ros-nodes.sh 
 

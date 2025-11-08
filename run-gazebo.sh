@@ -14,7 +14,6 @@ docker run -ti \
   -e LIBGL_ALWAYS_INDIRECT=0 \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v $(pwd)/sim_and_bridge_clean.launch.py:/tmp/sim_and_bridge.launch.py \
-  -v $(pwd)/scripts/:/app/${NS3_SOURCE_DIR}/scratch/ros_scripts/ \
   -v $(pwd)/world.sdf/:/app/world.sdf \
   -v $(pwd)/network_animations/:/app/network_animations/ \
   gz-ros-harmonic\
