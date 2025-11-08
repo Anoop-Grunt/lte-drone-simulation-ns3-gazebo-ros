@@ -44,7 +44,7 @@ def generate_launch_description():
         name='pose_bridge',
         output='screen',
         arguments=[
-            '/world/quadcopter_teleop/pose/info@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V'
+            '/model/X4/pose@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V'
         ]
     )
 

@@ -122,6 +122,18 @@
       <uri>
         https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/X3 UAV/4
       </uri>
+
+      <plugin
+        filename="gz-sim-pose-publisher-system"
+        name="gz::sim::systems::PosePublisher">
+        <publish_link_pose>true</publish_link_pose>
+        <publish_collision_pose>false</publish_collision_pose>
+        <publish_nested_model_pose>true</publish_nested_model_pose>
+        <publish_visual_pose>false</publish_visual_pose>
+        <use_pose_vector_msg>true</use_pose_vector_msg>
+        <update_frequency>1</update_frequency>
+      </plugin>
+
       <plugin
         filename="ignition-gazebo-multicopter-motor-model-system"
         name="ignition::gazebo::systems::MulticopterMotorModel">
@@ -203,8 +215,8 @@
         <motorType>velocity</motorType>
       </plugin>
       <plugin
-        filename="gz-sim-multicopter-control-system"
-        name="gz::sim::systems::MulticopterVelocityControl">
+        filename="ignition-gazebo-multicopter-control-system"
+        name="ignition::gazebo::systems::MulticopterVelocityControl">
         <robotNamespace>X3</robotNamespace>
         <commandSubTopic>cmd_vel</commandSubTopic>
         <enableSubTopic>enable</enableSubTopic>
@@ -241,14 +253,7 @@
           </rotor>
         </rotorConfiguration>
       </plugin>
-      <plugin
-        filename="gz-sim-pose-publisher-system"
-        name="gz::sim::systems::PosePublisher">
-        <publish_link_pose>true</publish_link_pose>
-        <use_pose_vector_msg>true</use_pose_vector_msg>
-        <publish_model_pose>true</publish_model_pose>
-        <update_frequency>10</update_frequency>
-      </plugin>
+
     </include>
 
     <model name="ground_plane">
