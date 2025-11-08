@@ -25,7 +25,7 @@ public:
 
     // Subscriber to world pose topic (change topic name if needed)
     pose_sub_ = this->create_subscription<tf2_msgs::msg::TFMessage>(
-        "/model/X4/pose", 10,
+        "/model/X3/pose", 10,
         std::bind(&Ns3RosNode::poseCallback, this, std::placeholders::_1));
   }
 
