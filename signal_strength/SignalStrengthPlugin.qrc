@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="/SignalStrengthPlugin">
+    <file>SignalStrengthPlugin.qml</file>
+  </qresource>
+</RCC>

@@ -15,17 +15,13 @@ class QuadcopterPilot(Node):
             10
         )
 
-        # Create a timer that publishes every 100ms (10 Hz)
-        self.timer = self.create_timer(0.1, self.timer_callback)
         self.counter = 0
 
         self.get_logger().info('Remote server node started, publishing to /model_movement_commands')
 
     def timer_callback(self):
-        # Create a simple movement pattern - circular motion
         msg = Twist()
 
-        # Simple circular movement
         msg.linear.x = math.sin(self.counter * 0.1) * 2.0
         msg.linear.y = math.cos(self.counter * 0.1) * 2.0
         msg.linear.z = 0.0

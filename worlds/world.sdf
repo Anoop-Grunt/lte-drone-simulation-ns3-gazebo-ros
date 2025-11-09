@@ -28,10 +28,23 @@
       <grid>false</grid>
     </scene>
 
-    <gui fullscreen="0">
 
-      <!-- 3D scene -->
-      <plugin filename="GzScene3D" name="3D View">
+    <gui fullscreen="0">
+    <plugin filename="SignalStrength.so" name="Signal Strength">
+  <ignition-gui>
+    <title>Signal Strength</title>
+    <property type="string" key="state">docked</property>
+  </ignition-gui>
+</plugin>
+
+	<plugin filename="TopicEcho" name="Topic Echo">
+	  <ignition-gui>
+	    <title>Topic Echo</title>
+	    <property type="string" key="state">docked</property>
+	  </ignition-gui>
+	  <topic>/signal_strength</topic>
+	</plugin>	
+	<plugin filename="GzScene3D" name="3D View">
         <ignition-gui>
           <title>3D View</title>
           <property type="bool" key="showTitleBar">false</property>
@@ -99,7 +112,10 @@
         <ignition-gui>
           <property type="string" key="state">docked</property>
         </ignition-gui>
-        <topic>/X3/cmd_vel</topic>
+        <topic>/X3/cmd_</topic>
+        <maxForwardVel>
+          50.0
+        </maxForwardVel>
       </plugin>
     </gui>
 
@@ -221,9 +237,9 @@
         <commandSubTopic>cmd_vel</commandSubTopic>
         <enableSubTopic>enable</enableSubTopic>
         <comLinkName>X3/base_link</comLinkName>
-        <velocityGain>2.7 2.7 2.7</velocityGain>
-        <attitudeGain>2 3 0.15</attitudeGain>
-        <angularRateGain>0.4 0.52 0.18</angularRateGain>
+        <velocityGain>1.5 1.5 1.5</velocityGain>
+        <attitudeGain>0.8 1.2 0.15</attitudeGain>
+        <angularRateGain>0.15 0.2 0.18</angularRateGain>
         <maximumLinearAcceleration>2 2 2</maximumLinearAcceleration>
 
         <rotorConfiguration>
@@ -271,7 +287,7 @@
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>1 1</size>
+              <size>600 600</size>
             </plane>
           </geometry>
           <material>
@@ -283,5 +299,22 @@
       </link>
     </model>
 
+    <include>
+      <name>enodeB1</name>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Radio tower</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <name>enodeB2</name>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Radio tower</uri>
+      <pose>300 0 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <name>enodeB3</name>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Radio tower</uri>
+      <pose>150 300 0 0 0 0</pose>
+    </include>
   </world>
 </sdf>

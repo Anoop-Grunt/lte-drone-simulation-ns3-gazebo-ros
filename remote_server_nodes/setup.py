@@ -24,7 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'quadcopter_pilot = remote_server_nodes.quadcopter_pilot:main'
+            'quadcopter_pilot = remote_server_nodes.quadcopter_pilot:main',
+            "camera_follower = remote_server_nodes.follow_cam:main"
             ],
     },
 )

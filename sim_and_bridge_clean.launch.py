@@ -1,12 +1,18 @@
 import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
+    # --- 0. Set environment variables ---
+    gz_gui_plugin_path = SetEnvironmentVariable(
+        name='GZ_GUI_PLUGIN_PATH',
+        value='/usr/local/lib/gz-gui-8/plugins:/usr/lib/x86_64-linux-gnu/gz-gui-8/plugins'
+    )
+
     # --- 1. Paths and Arguments ---
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     world_sdf_file = LaunchConfiguration(
@@ -14,17 +20,17 @@ def generate_launch_description():
         default='/app/world.sdf'
     )
     
-    # --- 2. Launch Gazebo Sim with specified world ---
+    # --- 2. Launch Gazebo Sim with proper command line flags ---
     gazebo_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')
         ),
         launch_arguments={
-            'gz_args': [world_sdf_file]
+            'gz_args': [world_sdf_file, ' -r --gui-config ./debugger_config.config']
         }.items()
     )
     
-    # --- 3. Bridge for /X3/cmd_vel ---
+    # --- Rest of your nodes... ---
     cmd_vel_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -35,7 +41,6 @@ def generate_launch_description():
         ]
     )
     
-    # --- 4. Bridge for Gazebo pose updates ---
     pose_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -46,7 +51,6 @@ def generate_launch_description():
         ]
     )
     
-    # --- 5. Launch NS-3 ROS node ---
     ns3_node = Node(
         package='ros_network',
         executable='ns3_ros_node',
@@ -55,7 +59,6 @@ def generate_launch_description():
         emulate_tty=True
     )
     
-    # --- 6. Launch Remote Server Node (Quadcopter Pilot) ---
     quadcopter_pilot = Node(
         package='remote_server_nodes',
         executable='quadcopter_pilot',
@@ -64,8 +67,17 @@ def generate_launch_description():
         emulate_tty=True
     )
     
+    camera_follower = Node(
+        package='remote_server_nodes',
+        executable='camera_follower',
+        name='camera_follower',
+        output='screen',
+        emulate_tty=True
+    )
+    
     # --- 7. Assemble Launch Description ---
     return LaunchDescription([
+        gz_gui_plugin_path,
         DeclareLaunchArgument(
             'world_sdf_file',
             default_value='/app/world.sdf',
@@ -75,5 +87,6 @@ def generate_launch_description():
         cmd_vel_bridge,
         pose_bridge,
         ns3_node,
-        quadcopter_pilot
+        quadcopter_pilot,
+        #camera_follower
     ])

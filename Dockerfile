@@ -44,11 +44,15 @@ copy ./remote_server_nodes/setup_remote_server_nodes.sh .
 run bash ./setup_remote_server_nodes.sh
 
 copy ./remote_server_nodes/quadcopter_pilot.py ./remote_server_nodes/remote_server_nodes/
+copy ./remote_server_nodes/follow_cam.py ./remote_server_nodes/remote_server_nodes/
 copy ./remote_server_nodes/setup.py ./remote_server_nodes/
 
 copy ./build-ros-nodes.sh .
 run bash ./build-ros-nodes.sh 
 
+copy ./signal_strength/install_custom_gz_plugin.sh .
+copy ./signal_strength/ ./signal_strength/
+run  sh ./install_custom_gz_plugin.sh
 
 run rm -rf /var/lib/apt/lists/*
 
