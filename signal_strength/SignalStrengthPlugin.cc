@@ -29,8 +29,6 @@ void SignalStrengthPlugin::OnRsrpMessage(const gz::msgs::Float_V &_msg) {
   QList<float> rsrpList;
   for (int i = 0; i < _msg.data_size(); ++i) {
     rsrpList.append(_msg.data(i));
-    std::cout << "eNodeB " << i << " RSRP: " << _msg.data(i) << " dBm"
-              << std::endl;
   }
 
   emit this->SetRsrpValues(rsrpList);
@@ -42,8 +40,6 @@ QList<float> SignalStrengthPlugin::RsrpValues() const {
 }
 
 void SignalStrengthPlugin::SetRsrpValues(const QList<float> &_rsrpValues) {
-  std::cout << "Setting RSRP values for " << _rsrpValues.size() << " eNodeBs"
-            << std::endl;
   this->dataPtr->rsrpValues = _rsrpValues;
   this->RsrpValuesChanged();
 }

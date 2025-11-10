@@ -252,13 +252,13 @@ int main(int argc, char *argv[]) {
   enbMobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   enbMobility.Install(enbNodes);
   enbNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(0, 0, 0));
-  enbNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(Vector(300, 0, 0));
-  enbNodes.Get(2)->GetObject<MobilityModel>()->SetPosition(Vector(150, 300, 0));
+  enbNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(Vector(150, 0, 0));
+  enbNodes.Get(2)->GetObject<MobilityModel>()->SetPosition(Vector(75, 150, 0));
 
   MobilityHelper ueMobility;
   ueMobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   ueMobility.Install(ueNodes);
-  ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(0, 0, 0));
+  ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(0, 0, 10));
 
   NetDeviceContainer enbLteDevs = lteHelper->InstallEnbDevice(enbNodes);
   NetDeviceContainer ueLteDevs = lteHelper->InstallUeDevice(ueNodes);
@@ -270,7 +270,7 @@ int main(int argc, char *argv[]) {
         DynamicCast<LteEnbNetDevice>(enbLteDevs.Get(i));
     if (enbDevice) {
       Ptr<LteEnbPhy> enbPhy = enbDevice->GetPhy();
-      enbPhy->SetTxPower(20.0); // Reduce from default ~46 dBm to 10 dBm
+      enbPhy->SetTxPower(25.0); // Reduce from default ~46 dBm to 10 dBm
     }
   }
   internet.Install(ueNodes);
@@ -333,8 +333,8 @@ int main(int argc, char *argv[]) {
   anim.UpdateNodeColor(ueNodes.Get(0), 0, 0, 255);
 
   anim.SetConstantPosition(enbNodes.Get(0), 0, 0);
-  anim.SetConstantPosition(enbNodes.Get(1), 300, 0);
-  anim.SetConstantPosition(enbNodes.Get(2), 150, 300);
+  anim.SetConstantPosition(enbNodes.Get(1), 150, 0);
+  anim.SetConstantPosition(enbNodes.Get(2), 70, 150);
 
   Ptr<Socket> udpSocket = Socket::CreateSocket(
       remoteHost, TypeId::LookupByName("ns3::UdpSocketFactory"));

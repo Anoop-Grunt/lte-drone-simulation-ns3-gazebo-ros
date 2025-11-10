@@ -138,7 +138,9 @@
       <uri>
         https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/X3 UAV/4
       </uri>
-
+      <pose>
+        0 0 10 0 0 0
+      </pose>
       <plugin
         filename="gz-sim-pose-publisher-system"
         name="gz::sim::systems::PosePublisher">
@@ -272,7 +274,8 @@
 
     </include>
 
-    <model name="ground_plane">
+    <!--<model
+    name="ground_plane">
       <static>true</static>
       <link name="link">
         <collision name="collision">
@@ -297,7 +300,14 @@
           </material>
         </visual>
       </link>
-    </model>
+  </model> -->
+
+
+    <include>
+      <uri>
+        https://fuel.gazebosim.org/1.0/jasmeetsingh/models/Mars Gale Crater Patch 2
+      </uri>
+    </include>
 
     <include>
       <name>enodeB1</name>
@@ -308,13 +318,13 @@
     <include>
       <name>enodeB2</name>
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Radio tower</uri>
-      <pose>300 0 0 0 0 0</pose>
+      <pose>150 0 10 0 0 0</pose>
     </include>
 
     <include>
       <name>enodeB3</name>
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Radio tower</uri>
-      <pose>150 300 0 0 0 0</pose>
+      <pose>75 150 -5 0 0 0</pose>
     </include>
   </world>
 </sdf>
