@@ -8,6 +8,7 @@
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/float32_multi_array.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
 #include <mutex>
@@ -18,6 +19,11 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteRos2RealtimeExample");
 
+// Forward declarations
+class Ns3RosNode;
+void ReportUeMeasurementsCallback(std::string, uint16_t, uint16_t, double,
+                                  double, bool, uint8_t);
+
 class Ns3RosNode : public rclcpp::Node {
 public:
   Ns3RosNode() : Node("ns3_ros_node") {
@@ -26,11 +32,11 @@ public:
     pose_sub_ = this->create_subscription<tf2_msgs::msg::TFMessage>(
         "/model/X3/pose", 10,
         std::bind(&Ns3RosNode::poseCallback, this, std::placeholders::_1));
-  }
 
-  void setUeNode(ns3::Ptr<ns3::Node> node) {
-    std::lock_guard<std::mutex> lock(node_mutex_);
-    ueNode = node;
+    // RSRP publisher - publishes Float32MultiArray with RSRP values for each
+    // eNodeB
+    rsrp_publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>(
+        "/rsrp_values", 10);
   }
 
   void publishTwistFromPacket(const std::string &data) {
@@ -88,6 +94,26 @@ public:
     }
   }
 
+  void setUeNode(ns3::Ptr<ns3::Node> node) {
+    std::lock_guard<std::mutex> lock(node_mutex_);
+    ueNode = node;
+  }
+
+  void setLteHelper(ns3::Ptr<ns3::LteHelper> helper) {
+    std::lock_guard<std::mutex> lock(node_mutex_);
+    lteHelper = helper;
+  }
+
+  void setUeDevice(ns3::NetDeviceContainer devices) {
+    std::lock_guard<std::mutex> lock(node_mutex_);
+    ueLteDevs = devices;
+  }
+
+  void setEnbDevices(ns3::NetDeviceContainer devices) {
+    std::lock_guard<std::mutex> lock(node_mutex_);
+    enbLteDevs = devices;
+  }
+
   void setUdpSocket(Ptr<Socket> socket, Ipv4Address ue_ip) {
     std::lock_guard<std::mutex> lock(node_mutex_);
     udp_socket_ = socket;
@@ -100,8 +126,39 @@ public:
         std::bind(&Ns3RosNode::cmdVelCallback, this, std::placeholders::_1));
   }
 
-  void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg) {
-    this->sendTwistOverUdp(*msg);
+  void publishRsrpDirectly(uint16_t cellId, double rsrp) {
+    auto rsrp_msg = std_msgs::msg::Float32MultiArray();
+    rsrp_msg.layout.dim.resize(1);
+    rsrp_msg.layout.dim[0].label = "rsrp_values";
+    rsrp_msg.layout.dim[0].size = 1;
+    rsrp_msg.data.push_back(static_cast<float>(rsrp));
+
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
+                "Publishing RSRP for CellID %u: %.2f dBm", cellId, rsrp);
+    rsrp_publisher_->publish(rsrp_msg);
+  }
+
+  void connectUePhyTraces() {
+    std::lock_guard<std::mutex> lock(node_mutex_);
+
+    if (ueLteDevs.GetN() == 0) {
+      return;
+    }
+
+    Ptr<LteUeNetDevice> ueDevice =
+        DynamicCast<LteUeNetDevice>(ueLteDevs.Get(0));
+    if (!ueDevice) {
+      return;
+    }
+
+    Ptr<LteUePhy> uePhy = ueDevice->GetPhy();
+    if (!uePhy) {
+      return;
+    }
+
+    uePhy->TraceConnect("ReportUeMeasurements", std::string(""),
+                        MakeCallback(&ReportUeMeasurementsCallback));
+    NS_LOG_UNCOND("RSRP measurement trace connected directly to UE PHY");
   }
 
 private:
@@ -125,28 +182,42 @@ private:
     });
   }
 
+  void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg) {
+    this->sendTwistOverUdp(*msg);
+  }
+
   ns3::Ptr<ns3::Node> ueNode;
+  ns3::Ptr<ns3::LteHelper> lteHelper;
+  ns3::NetDeviceContainer ueLteDevs;
+  ns3::NetDeviceContainer enbLteDevs;
   std::mutex node_mutex_;
   Ptr<Socket> udp_socket_;
   Ipv4Address ue_ip_addr_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
+  rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr
+      rsrp_publisher_;
   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr pose_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_sub_;
 };
 
-// Global ROS node pointer for packet sink callback
+// Forward declarations for trace callbacks
 std::shared_ptr<Ns3RosNode> g_ros_node = nullptr;
 
-void PacketReceivedCallback(std::string context, Ptr<const Packet> p,
-                            const Address &addr) {
+void PacketReceivedCallback(std::string, Ptr<const Packet> p, const Address &) {
   if (g_ros_node) {
-    // Extract payload data from packet
     uint8_t buffer[p->GetSize()];
     p->CopyData(buffer, p->GetSize());
     std::string data(reinterpret_cast<char *>(buffer), p->GetSize());
-
-    // Parse and publish as Twist message
     g_ros_node->publishTwistFromPacket(data);
+  }
+}
+
+void ReportUeMeasurementsCallback(std::string, uint16_t, uint16_t cellId,
+                                  double rsrp, double, bool, uint8_t) {
+  NS_LOG_UNCOND("RSRP Callback triggered - CellID: " << cellId << ", RSRP: "
+                                                     << rsrp << " dBm");
+  if (g_ros_node) {
+    g_ros_node->publishRsrpDirectly(cellId, rsrp);
   }
 }
 
@@ -296,8 +367,11 @@ int main(int argc, char *argv[]) {
 
   // ROS2 node
   auto ros_node = std::make_shared<Ns3RosNode>();
-  g_ros_node = ros_node; // Set global pointer for callback
+  g_ros_node = ros_node;
   ros_node->setUeNode(ueNodes.Get(0));
+  ros_node->setLteHelper(lteHelper);
+  ros_node->setUeDevice(ueLteDevs);
+  ros_node->setEnbDevices(enbLteDevs);
   ros_node->setUdpSocket(udpSocket, ueIpAddr);
   ros_node->createCmdVelSubscription();
 
@@ -310,6 +384,31 @@ int main(int argc, char *argv[]) {
       NS_LOG_UNCOND("Packet sink trace connected");
     }
   }
+
+  // Connect RSRP measurement trace for the UE
+  ros_node->connectUePhyTraces();
+
+  // Schedule twist messages: go up, forward, then stop
+  Simulator::Schedule(Seconds(5.0), [ros_node]() {
+    auto twist = geometry_msgs::msg::Twist();
+    twist.linear.z = 1.0; // Go up
+    ros_node->sendTwistOverUdp(twist);
+    NS_LOG_UNCOND("Scheduled twist: Going UP");
+  });
+
+  Simulator::Schedule(Seconds(10.0), [ros_node]() {
+    auto twist = geometry_msgs::msg::Twist();
+    twist.linear.x = 1.0; // Go forward
+    ros_node->sendTwistOverUdp(twist);
+    NS_LOG_UNCOND("Scheduled twist: Going FORWARD");
+  });
+
+  Simulator::Schedule(Seconds(15.0), [ros_node]() {
+    auto twist = geometry_msgs::msg::Twist();
+    // All zeros = stop
+    ros_node->sendTwistOverUdp(twist);
+    NS_LOG_UNCOND("Scheduled twist: STOP");
+  });
 
   std::thread ros_spin_thread([&]() {
     while (rclcpp::ok()) {
