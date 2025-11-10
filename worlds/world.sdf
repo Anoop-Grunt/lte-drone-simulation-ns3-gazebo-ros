@@ -30,21 +30,21 @@
 
 
     <gui fullscreen="0">
-    <plugin filename="SignalStrength.so" name="Signal Strength">
-  <ignition-gui>
-    <title>Signal Strength</title>
-    <property type="string" key="state">docked</property>
-  </ignition-gui>
-</plugin>
+      <plugin filename="SignalStrength.so" name="Signal Strength">
+        <ignition-gui>
+          <title>Signal Strength</title>
+          <property type="string" key="state">docked</property>
+        </ignition-gui>
+      </plugin>
 
-	<plugin filename="TopicEcho" name="Topic Echo">
-	  <ignition-gui>
-	    <title>Topic Echo</title>
-	    <property type="string" key="state">docked</property>
-	  </ignition-gui>
-	  <topic>/signal_strength</topic>
-	</plugin>	
-	<plugin filename="GzScene3D" name="3D View">
+      <plugin filename="TopicEcho" name="Topic Echo">
+        <ignition-gui>
+          <title>Topic Echo</title>
+          <property type="string" key="state">docked</property>
+        </ignition-gui>
+        <topic>/signal_strength</topic>
+      </plugin>
+      <plugin filename="GzScene3D" name="3D View">
         <ignition-gui>
           <title>3D View</title>
           <property type="bool" key="showTitleBar">false</property>

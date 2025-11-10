@@ -8,8 +8,7 @@
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/float32_multi_array.hpp"
-#include "std_msgs/msg/string.hpp"
+#include "ros_gz_interfaces/msg/float32_array.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
 #include <mutex>
 #include <sstream>
@@ -19,7 +18,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteRos2RealtimeExample");
 
-// Forward declarations
 class Ns3RosNode;
 void ReportUeMeasurementsCallback(std::string, uint16_t, uint16_t, double,
                                   double, bool, uint8_t);
@@ -32,18 +30,17 @@ public:
     pose_sub_ = this->create_subscription<tf2_msgs::msg::TFMessage>(
         "/model/X3/pose", 10,
         std::bind(&Ns3RosNode::poseCallback, this, std::placeholders::_1));
+    rsrp_publisher_ =
+        this->create_publisher<ros_gz_interfaces::msg::Float32Array>(
+            "/rsrp_values", 10);
 
-    // RSRP publisher - publishes Float32MultiArray with RSRP values for each
-    // eNodeB
-    rsrp_publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>(
-        "/rsrp_values", 10);
+    rsrp_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(50),
+        std::bind(&Ns3RosNode::publishAllRsrpValues, this));
   }
 
   void publishTwistFromPacket(const std::string &data) {
-    // Parse the serialized Twist data
     auto twist_msg = geometry_msgs::msg::Twist();
-
-    // Simple parsing: "linear.x:1.5,linear.y:2.0,..."
     std::istringstream iss(data);
     std::string token;
 
@@ -68,14 +65,12 @@ public:
           twist_msg.angular.z = val;
       }
     }
-
     publisher_->publish(twist_msg);
   }
 
   void sendTwistOverUdp(const geometry_msgs::msg::Twist &twist) {
     std::lock_guard<std::mutex> lock(node_mutex_);
     if (udp_socket_) {
-      // Serialize the Twist message into a byte buffer
       std::ostringstream oss;
       oss << "linear.x:" << twist.linear.x << ",linear.y:" << twist.linear.y
           << ",linear.z:" << twist.linear.z << ",angular.x:" << twist.angular.x
@@ -87,9 +82,8 @@ public:
       Ptr<Socket> sock = udp_socket_;
       Ipv4Address addr = ue_ip_addr_;
       Simulator::ScheduleNow([sock, packet, addr]() {
-        if (sock) {
+        if (sock)
           sock->SendTo(packet, 0, InetSocketAddress(addr, 1234));
-        }
       });
     }
   }
@@ -126,35 +120,35 @@ public:
         std::bind(&Ns3RosNode::cmdVelCallback, this, std::placeholders::_1));
   }
 
-  void publishRsrpDirectly(uint16_t cellId, double rsrp) {
-    auto rsrp_msg = std_msgs::msg::Float32MultiArray();
-    rsrp_msg.layout.dim.resize(1);
-    rsrp_msg.layout.dim[0].label = "rsrp_values";
-    rsrp_msg.layout.dim[0].size = 1;
-    rsrp_msg.data.push_back(static_cast<float>(rsrp));
+  void recordRsrpValue(uint16_t cellId, double rsrp) {
+    std::lock_guard<std::mutex> lock(rsrp_mutex_);
+    rsrp_values_[cellId] = static_cast<float>(rsrp);
+  }
 
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "Publishing RSRP for CellID %u: %.2f dBm", cellId, rsrp);
-    rsrp_publisher_->publish(rsrp_msg);
+  void publishAllRsrpValues() {
+    std::lock_guard<std::mutex> lock(rsrp_mutex_);
+    auto rsrp_msg = ros_gz_interfaces::msg::Float32Array();
+    for (const auto &pair : rsrp_values_) {
+      rsrp_msg.data.push_back(pair.second);
+    }
+    if (!rsrp_msg.data.empty()) {
+      rsrp_publisher_->publish(rsrp_msg);
+    }
   }
 
   void connectUePhyTraces() {
     std::lock_guard<std::mutex> lock(node_mutex_);
-
-    if (ueLteDevs.GetN() == 0) {
+    if (ueLteDevs.GetN() == 0)
       return;
-    }
 
     Ptr<LteUeNetDevice> ueDevice =
         DynamicCast<LteUeNetDevice>(ueLteDevs.Get(0));
-    if (!ueDevice) {
+    if (!ueDevice)
       return;
-    }
 
     Ptr<LteUePhy> uePhy = ueDevice->GetPhy();
-    if (!uePhy) {
+    if (!uePhy)
       return;
-    }
 
     uePhy->TraceConnect("ReportUeMeasurements", std::string(""),
                         MakeCallback(&ReportUeMeasurementsCallback));
@@ -173,12 +167,11 @@ private:
   }
 
   void scheduleUeMove(double x, double y, double z) {
-    Vector3D newPos{20.0 * x, 20.0 * y, 20.0 * z};
+    Vector3D newPos{1.0 * x, 1.0 * y, 1.0 * z};
     Simulator::ScheduleNow([this, newPos]() {
       std::lock_guard<std::mutex> lock(node_mutex_);
-      if (ueNode) {
+      if (ueNode)
         ueNode->GetObject<MobilityModel>()->SetPosition(newPos);
-      }
     });
   }
 
@@ -191,16 +184,18 @@ private:
   ns3::NetDeviceContainer ueLteDevs;
   ns3::NetDeviceContainer enbLteDevs;
   std::mutex node_mutex_;
+  std::mutex rsrp_mutex_;
+  std::map<uint16_t, float> rsrp_values_;
   Ptr<Socket> udp_socket_;
   Ipv4Address ue_ip_addr_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
-  rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr
+  rclcpp::Publisher<ros_gz_interfaces::msg::Float32Array>::SharedPtr
       rsrp_publisher_;
   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr pose_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_sub_;
+  rclcpp::TimerBase::SharedPtr rsrp_timer_;
 };
 
-// Forward declarations for trace callbacks
 std::shared_ptr<Ns3RosNode> g_ros_node = nullptr;
 
 void PacketReceivedCallback(std::string, Ptr<const Packet> p, const Address &) {
@@ -214,30 +209,24 @@ void PacketReceivedCallback(std::string, Ptr<const Packet> p, const Address &) {
 
 void ReportUeMeasurementsCallback(std::string, uint16_t, uint16_t cellId,
                                   double rsrp, double, bool, uint8_t) {
-  NS_LOG_UNCOND("RSRP Callback triggered - CellID: " << cellId << ", RSRP: "
-                                                     << rsrp << " dBm");
   if (g_ros_node) {
-    g_ros_node->publishRsrpDirectly(cellId, rsrp);
+    g_ros_node->recordRsrpValue(cellId, rsrp);
   }
 }
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
 
-  // NS-3 real-time simulation
   GlobalValue::Bind("SimulatorImplementationType",
                     StringValue("ns3::RealtimeSimulatorImpl"));
   GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
 
-  double simTime = 60.0;
-
-  // LTE setup
+  double simTime = 600000.0;
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
   Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
   lteHelper->SetEpcHelper(epcHelper);
 
   Ptr<Node> pgw = epcHelper->GetPgwNode();
-
   NodeContainer remoteHostContainer;
   remoteHostContainer.Create(1);
   Ptr<Node> remoteHost = remoteHostContainer.Get(0);
@@ -255,13 +244,10 @@ int main(int argc, char *argv[]) {
   ipv4h.SetBase("1.0.0.0", "255.0.0.0");
   ipv4h.Assign(internetDevices);
 
-  // Nodes
-  NodeContainer enbNodes;
-  NodeContainer ueNodes;
+  NodeContainer enbNodes, ueNodes;
   enbNodes.Create(3);
   ueNodes.Create(1);
 
-  // eNodeB mobility - stationary, spread around the grid
   MobilityHelper enbMobility;
   enbMobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   enbMobility.Install(enbNodes);
@@ -269,7 +255,6 @@ int main(int argc, char *argv[]) {
   enbNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(Vector(300, 0, 0));
   enbNodes.Get(2)->GetObject<MobilityModel>()->SetPosition(Vector(150, 300, 0));
 
-  // UE mobility - ROS transforms will move it around via scaling
   MobilityHelper ueMobility;
   ueMobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   ueMobility.Install(ueNodes);
@@ -278,24 +263,27 @@ int main(int argc, char *argv[]) {
   NetDeviceContainer enbLteDevs = lteHelper->InstallEnbDevice(enbNodes);
   NetDeviceContainer ueLteDevs = lteHelper->InstallUeDevice(ueNodes);
 
+  // TODO: Check if lowering power like this is going to affect anything other
+  // than just signal strength
+  for (uint32_t i = 0; i < enbLteDevs.GetN(); i++) {
+    Ptr<LteEnbNetDevice> enbDevice =
+        DynamicCast<LteEnbNetDevice>(enbLteDevs.Get(i));
+    if (enbDevice) {
+      Ptr<LteEnbPhy> enbPhy = enbDevice->GetPhy();
+      enbPhy->SetTxPower(20.0); // Reduce from default ~46 dBm to 10 dBm
+    }
+  }
   internet.Install(ueNodes);
   epcHelper->AssignUeIpv4Address(ueLteDevs);
 
-  // Attach UE to eNodeB
   for (uint16_t i = 0; i < ueNodes.GetN(); i++) {
     lteHelper->Attach(ueLteDevs.Get(i), enbLteDevs.Get(0));
   }
 
-  // Get UE IP address from the assigned interfaces
   Ptr<Ipv4> ueIpv4 = ueNodes.Get(0)->GetObject<Ipv4>();
-  Ipv4Address ueIpAddr =
-      ueIpv4->GetAddress(1, 0).GetLocal(); // Interface 1 is the LTE device
+  Ipv4Address ueIpAddr = ueIpv4->GetAddress(1, 0).GetLocal();
 
-  // Create traffic: Remote host sends to UE
   uint16_t dlPort = 1234;
-  ApplicationContainer clientApps;
-
-  // Packet sink on UE (receives data)
   PacketSinkHelper packetSinkHelper(
       "ns3::UdpSocketFactory",
       InetSocketAddress(Ipv4Address::GetAny(), dlPort));
@@ -303,19 +291,14 @@ int main(int argc, char *argv[]) {
   sinkApps.Start(Seconds(0.5));
   sinkApps.Stop(Seconds(simTime));
 
-  // UDP client on remote host (sends data to UE) - no interval, triggered by
-  // ROS
   UdpClientHelper client(ueIpAddr, dlPort);
   client.SetAttribute("MaxPackets", UintegerValue(100000));
-  client.SetAttribute(
-      "Interval",
-      TimeValue(Seconds(1e6))); // Very large interval, we'll trigger manually
+  client.SetAttribute("Interval", TimeValue(Seconds(1e6)));
   client.SetAttribute("PacketSize", UintegerValue(1024));
-  clientApps = client.Install(remoteHost);
+  ApplicationContainer clientApps = client.Install(remoteHost);
   clientApps.Start(Seconds(1.0));
   clientApps.Stop(Seconds(simTime));
 
-  // Reverse direction: UE sends to remote host
   uint16_t ulPort = 2000;
   PacketSinkHelper ulPacketSinkHelper(
       "ns3::UdpSocketFactory",
@@ -338,34 +321,27 @@ int main(int argc, char *argv[]) {
   ulClientApps.Start(Seconds(1.0));
   ulClientApps.Stop(Seconds(simTime));
 
-  // NetAnim visualization
   AnimationInterface anim("network_animations/ns3_ros2.xml");
-
-  // Assign readable labels for NetAnim visualization
   anim.UpdateNodeDescription(enbNodes.Get(0), "eNodeB 0");
   anim.UpdateNodeDescription(enbNodes.Get(1), "eNodeB 1");
   anim.UpdateNodeDescription(enbNodes.Get(2), "eNodeB 2");
   anim.UpdateNodeDescription(ueNodes.Get(0), "UE X3");
 
-  // Optional: color them differently
-  anim.UpdateNodeColor(enbNodes.Get(0), 255, 0, 0);   // red for eNodeB 0
-  anim.UpdateNodeColor(enbNodes.Get(1), 255, 100, 0); // orange for eNodeB 1
-  anim.UpdateNodeColor(enbNodes.Get(2), 255, 200, 0); // yellow for eNodeB 2
-  anim.UpdateNodeColor(ueNodes.Get(0), 0, 0, 255);    // blue for UE
+  anim.UpdateNodeColor(enbNodes.Get(0), 255, 0, 0);
+  anim.UpdateNodeColor(enbNodes.Get(1), 255, 100, 0);
+  anim.UpdateNodeColor(enbNodes.Get(2), 255, 200, 0);
+  anim.UpdateNodeColor(ueNodes.Get(0), 0, 0, 255);
 
-  // Fixed positions for visualization
   anim.SetConstantPosition(enbNodes.Get(0), 0, 0);
   anim.SetConstantPosition(enbNodes.Get(1), 300, 0);
   anim.SetConstantPosition(enbNodes.Get(2), 150, 300);
 
-  // Create a UDP socket on the remote host for sending data
   Ptr<Socket> udpSocket = Socket::CreateSocket(
       remoteHost, TypeId::LookupByName("ns3::UdpSocketFactory"));
   InetSocketAddress remoteAddr(Ipv4Address::GetAny(), 0);
   udpSocket->Bind(remoteAddr);
   udpSocket->SetAllowBroadcast(true);
 
-  // ROS2 node
   auto ros_node = std::make_shared<Ns3RosNode>();
   g_ros_node = ros_node;
   ros_node->setUeNode(ueNodes.Get(0));
@@ -375,7 +351,6 @@ int main(int argc, char *argv[]) {
   ros_node->setUdpSocket(udpSocket, ueIpAddr);
   ros_node->createCmdVelSubscription();
 
-  // Connect packet received trace to callback
   for (uint32_t i = 0; i < sinkApps.GetN(); i++) {
     Ptr<PacketSink> sink = DynamicCast<PacketSink>(sinkApps.Get(i));
     if (sink) {
@@ -385,27 +360,24 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // Connect RSRP measurement trace for the UE
   ros_node->connectUePhyTraces();
 
-  // Schedule twist messages: go up, forward, then stop
-  Simulator::Schedule(Seconds(5.0), [ros_node]() {
+  Simulator::Schedule(Seconds(2.0), [ros_node]() {
     auto twist = geometry_msgs::msg::Twist();
-    twist.linear.z = 1.0; // Go up
+    twist.linear.z = 1.0;
     ros_node->sendTwistOverUdp(twist);
     NS_LOG_UNCOND("Scheduled twist: Going UP");
   });
 
-  Simulator::Schedule(Seconds(10.0), [ros_node]() {
+  Simulator::Schedule(Seconds(5.0), [ros_node]() {
     auto twist = geometry_msgs::msg::Twist();
-    twist.linear.x = 1.0; // Go forward
+    twist.linear.x = 1.0;
     ros_node->sendTwistOverUdp(twist);
     NS_LOG_UNCOND("Scheduled twist: Going FORWARD");
   });
 
-  Simulator::Schedule(Seconds(15.0), [ros_node]() {
+  Simulator::Schedule(Seconds(8.0), [ros_node]() {
     auto twist = geometry_msgs::msg::Twist();
-    // All zeros = stop
     ros_node->sendTwistOverUdp(twist);
     NS_LOG_UNCOND("Scheduled twist: STOP");
   });

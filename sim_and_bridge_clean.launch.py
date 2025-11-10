@@ -51,6 +51,16 @@ def generate_launch_description():
         ]
     )
     
+    rsrp_bridge = Node(
+    package='ros_gz_bridge',
+    executable='parameter_bridge',
+    name='rsrp_bridge',
+    output='screen',
+    arguments=[
+        '/rsrp_values@ros_gz_interfaces/msg/Float32Array]gz.msgs.Float_V'
+
+    ]
+)
     ns3_node = Node(
         package='ros_network',
         executable='ns3_ros_node',
@@ -86,6 +96,7 @@ def generate_launch_description():
         gazebo_sim,
         cmd_vel_bridge,
         pose_bridge,
+        rsrp_bridge,
         ns3_node,
         quadcopter_pilot,
         #camera_follower

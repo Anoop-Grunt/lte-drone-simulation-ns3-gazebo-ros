@@ -16,31 +16,36 @@ SignalStrengthPlugin::~SignalStrengthPlugin() = default;
 
 void SignalStrengthPlugin::LoadConfig(const tinyxml2::XMLElement *) {
   if (this->title.empty())
-    this->title = "Signal Strength Monitor";
+    this->title = "RSRP Monitor";
 
-  // Subscribe to signal strength topic
-  this->dataPtr->node.Subscribe(
-      "/signal_strength", &SignalStrengthPlugin::OnSignalStrengthMessage, this);
+  // Subscribe to RSRP topic from NS-3 (bridged from ROS /rsrp_values)
+  this->dataPtr->node.Subscribe("/rsrp_values",
+                                &SignalStrengthPlugin::OnRsrpMessage, this);
 }
 
-void SignalStrengthPlugin::OnSignalStrengthMessage(
-    const gz::msgs::Double &_msg) {
+void SignalStrengthPlugin::OnRsrpMessage(const gz::msgs::Float_V &_msg) {
   std::lock_guard<std::mutex> lock(this->dataPtr->mutex);
-  std::cout << "Received signal strength: " << _msg.data() << std::endl;
-  QString value = QString::number(_msg.data(), 'f', 2);
-  emit this->SetSignalStrength(value);
+
+  QList<float> rsrpList;
+  for (int i = 0; i < _msg.data_size(); ++i) {
+    rsrpList.append(_msg.data(i));
+    std::cout << "eNodeB " << i << " RSRP: " << _msg.data(i) << " dBm"
+              << std::endl;
+  }
+
+  emit this->SetRsrpValues(rsrpList);
 }
 
-QString SignalStrengthPlugin::SignalStrength() const {
+QList<float> SignalStrengthPlugin::RsrpValues() const {
   std::lock_guard<std::mutex> lock(this->dataPtr->mutex);
-  return this->dataPtr->signalStrengthValue;
+  return this->dataPtr->rsrpValues;
 }
 
-void SignalStrengthPlugin::SetSignalStrength(const QString &_signalStrength) {
-  std::cout << "Setting signal strength to: " << _signalStrength.toStdString()
+void SignalStrengthPlugin::SetRsrpValues(const QList<float> &_rsrpValues) {
+  std::cout << "Setting RSRP values for " << _rsrpValues.size() << " eNodeBs"
             << std::endl;
-  this->dataPtr->signalStrengthValue = _signalStrength;
-  this->SignalStrengthChanged();
+  this->dataPtr->rsrpValues = _rsrpValues;
+  this->RsrpValuesChanged();
 }
 
 } // namespace gz::gui::plugins

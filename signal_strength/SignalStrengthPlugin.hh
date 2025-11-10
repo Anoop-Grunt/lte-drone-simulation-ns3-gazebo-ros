@@ -1,52 +1,45 @@
 #ifndef SIGNALSTRENGTHPLUGIN_HH_
 #define SIGNALSTRENGTHPLUGIN_HH_
 
+#include <QList>
 #include <QString>
 #include <gz/gui/Plugin.hh>
-#include <gz/msgs/double.pb.h>
+#include <gz/msgs/float_v.pb.h>
 #include <gz/transport/Node.hh>
 #include <memory>
 #include <mutex>
+#include <vector>
 
 namespace gz::gui::plugins {
 
 class SignalStrengthPluginPrivate {
 public:
-  QString signalStrengthValue{"--"};
-
-public:
+  QList<float> rsrpValues;
   std::mutex mutex;
-
-public:
   gz::transport::Node node;
 };
 
 class SignalStrengthPlugin : public gz::gui::Plugin {
   Q_OBJECT
-
-  Q_PROPERTY(QString signalStrength READ SignalStrength WRITE SetSignalStrength
-                 NOTIFY SignalStrengthChanged)
-
+  Q_PROPERTY(QList<float> rsrpValues READ RsrpValues WRITE SetRsrpValues NOTIFY
+                 RsrpValuesChanged)
 public:
   SignalStrengthPlugin();
-
-public:
   virtual ~SignalStrengthPlugin();
 
-public:
   virtual void LoadConfig(const tinyxml2::XMLElement *_pluginElem);
 
 private:
-  void OnSignalStrengthMessage(const gz::msgs::Double &_msg);
+  void OnRsrpMessage(const gz::msgs::Float_V &_msg);
 
 public:
-  Q_INVOKABLE QString SignalStrength() const;
+  Q_INVOKABLE QList<float> RsrpValues() const;
 
 public slots:
-  void SetSignalStrength(const QString &_signalStrength);
+  void SetRsrpValues(const QList<float> &_rsrpValues);
 
 signals:
-  void SignalStrengthChanged();
+  void RsrpValuesChanged();
 
 private:
   std::unique_ptr<SignalStrengthPluginPrivate> dataPtr;
