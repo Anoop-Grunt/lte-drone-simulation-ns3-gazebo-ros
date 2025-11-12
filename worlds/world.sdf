@@ -310,19 +310,19 @@
     </include>
 
     <include>
-      <name>enodeB1</name>
+      <name>enodeB0</name>
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Radio tower</uri>
       <pose>0 0 0 0 0 0</pose>
     </include>
 
     <include>
-      <name>enodeB2</name>
+      <name>enodeB1</name>
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Radio tower</uri>
       <pose>150 0 10 0 0 0</pose>
     </include>
 
     <include>
-      <name>enodeB3</name>
+      <name>enodeB2</name>
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Radio tower</uri>
       <pose>75 150 -5 0 0 0</pose>
     </include>
