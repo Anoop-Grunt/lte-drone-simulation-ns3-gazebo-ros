@@ -321,7 +321,7 @@ An autonomous path planning system using reinforcement learning is currently und
 The `RLPathPlanner` publishes suggested waypoints that appear as visual markers in Gazebo. The `QuadcopterPilot` can optionally follow these suggestions by autopilot, or continue with manual keyboard control for comparison.
 
 ### Current Status
-⚠️ **Early Development** — The framework for subscribing to network metrics and publishing waypoints is in place. Core RL training pipeline (model training, policy gradient updates) is not yet implemented.
+⚠️ **Early Development** — The framework for subscribing to network metrics and publishing waypoints is in place, but not completely stable or usable yet. I'm still figuring out the best policy for this.
 
 ### Future Enhancements
 - Deep Q-Network (DQN) or Policy Gradient training with simulated trajectories
