@@ -1,4 +1,4 @@
-# NS3-Gazebo-ROS2 Integra# NS3-Gazebo-ROS2 Integrated LTE Network Simulation
+# NS3-Gazebo-ROS2 Integrated LTE Network Simulation
 
 A real-time integrated simulation platform combining NS-3 LTE network simulation with Gazebo drone simulation and ROS2 orchestration. This system simulates an LTE network with three eNodeBs and a mobile UE (drone) that responds to network conditions, with live RSRP visualization in Gazebo.
 
