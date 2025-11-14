@@ -1,4 +1,4 @@
-# NS3-Gazebo-ROS2 Integrated LTE Network Simulation
+# NS3-Gazebo-ROS2 Integra# NS3-Gazebo-ROS2 Integrated LTE Network Simulation
 
 A real-time integrated simulation platform combining NS-3 LTE network simulation with Gazebo drone simulation and ROS2 orchestration. This system simulates an LTE network with three eNodeBs and a mobile UE (drone) that responds to network conditions, with live RSRP visualization in Gazebo.
 
@@ -30,6 +30,7 @@ graph TB
             NS3_ROS["Ns3RosNode<br/>Bridge"]
             QUAD_PILOT["QuadcopterPilot<br/>Keyboard Control"]
             CAMERA["CameraFollower<br/>View Control"]
+            RL_PLANNER["RLPathPlanner<br/>(WIP)<br/>RL Path Optimization"]
         end
         
         subgraph Bridges["ROS-Gazebo Bridges"]
@@ -53,6 +54,9 @@ graph TB
         
         QUAD_PILOT -->|/model_movement_commands| NS3_ROS
         CAMERA -->|Camera Control| Gazebo
+        RL_PLANNER -->|subscribes| NS3_ROS
+        RL_PLANNER -->|waypoints| QUAD_PILOT
+        RL_PLANNER -->|visualization| Gazebo
         
         CMD_BRIDGE -->|cmd_vel| Gazebo
         POSE_BRIDGE -->|pose| NS3_ROS
@@ -124,6 +128,16 @@ Connects the discrete simulations through topic bridges and custom orchestration
   - Publishes RSRP measurements
   - Receives movement commands and forwards to NS-3 over UDP
   - Synchronizes drone position from Gazebo to NS-3 mobility model
+
+- **`RLPathPlanner`** ⚠️ **[WORK IN PROGRESS]**: Reinforcement learning-based path optimization
+  - Subscribes to RSRP values, network congestion metrics, and handover events
+  - Uses RL agent to compute optimal waypoint sequences that:
+    - Minimize handovers between eNodeBs (reduce connection switching overhead)
+    - Avoid network congestion zones (stay in areas with good coverage and low load)
+    - Maximize signal quality along the trajectory
+  - Publishes waypoint geometry as `visualization_msgs/MarkerArray` for Gazebo display
+  - Generates suggested heading and velocity commands that `QuadcopterPilot` can optionally follow
+  - **Status**: Currently in development; core RL training pipeline not yet implemented
 
 ## Data Flow (Network-Mediated Control)
 
@@ -285,10 +299,40 @@ NS-3 generates animation files in `./network_animations/ns3_ros2.xml` that can b
 - **Gazebo Physics Step**: Configure in `world.sdf`
 - **ROS2 Update Rates**: Modify timer periods in individual nodes
 
-## Future Extensions
+## Work In Progress: RLPathPlanner Node
 
-- Add UAV collision avoidance
-- Implement path planning based on signal strength
-- Support multiple drones
-- Add real LTE protocol simulation (beyond RSRP)
-- Integrate with actual drone hardware via middleware Integrate with actual drone hardware via middleware
+An autonomous path planning system using reinforcement learning is currently under development. This node will:
+
+### Objectives
+- **Minimize Handovers**: Learn trajectories that reduce unnecessary cell switches between eNodeBs
+- **Avoid Congestion**: Dynamically route around high-load network zones
+- **Maximize Signal Quality**: Maintain good RSRP throughout the flight path
+- **Real-time Adaptation**: Update waypoints as network conditions change
+
+### Architecture
+- **State Space**: Drone position, RSRP from each eNodeB, network load, handover history
+- **Action Space**: Discrete waypoint selection in a grid around the drone
+- **Reward Function**: 
+  - Positive: High RSRP, long time between handovers
+  - Negative: Low signal, excessive handovers, congestion
+- **Output**: Visualization of waypoints in Gazebo as interactive markers; suggested heading and velocity for pilot
+
+### Integration with QuadcopterPilot
+The `RLPathPlanner` publishes suggested waypoints that appear as visual markers in Gazebo. The `QuadcopterPilot` can optionally follow these suggestions by autopilot, or continue with manual keyboard control for comparison.
+
+### Current Status
+⚠️ **Early Development** — The framework for subscribing to network metrics and publishing waypoints is in place. Core RL training pipeline (model training, policy gradient updates) is not yet implemented.
+
+### Future Enhancements
+- Deep Q-Network (DQN) or Policy Gradient training with simulated trajectories
+- Multi-drone coordination
+- Integration with actual network load prediction models
+- Handover impact quantification from NS-3 traces
+
+## Future Extensions (Beyond Current Scope)
+
+- Add UAV collision avoidance with other drones
+- Support multiple drones with coordinated path planning
+- Add real LTE protocol simulation details (beyond RSRP)
+- Integrate with actual drone hardware via middleware
+- Data logging and post-simulation analysis toolsone hardware via middleware Integrate with actual drone hardware via middleware
