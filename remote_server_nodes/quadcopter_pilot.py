@@ -12,7 +12,7 @@ class QuadcopterPilot(Node):
         self.pub = self.create_publisher(Twist, '/model_movement_commands', 10)
         self.create_subscription(Float32, '/rsrp_values', self.rsrp_callback, 10)
         self.twist = Twist()
-        self.linear_speed = 50.0
+        self.linear_speed = 10.0
         self.angular_speed = 1.0
         self.pressed_keys = set()
         self.get_logger().info("Keyboard controller started. Use arrow keys or WASD. Press ESC to quit.")
