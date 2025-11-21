@@ -9,6 +9,7 @@
 #include "ns3/point-to-point-module.h"
 #include "rclcpp/rclcpp.hpp"
 #include "ros_gz_interfaces/msg/float32_array.hpp"
+#include "std_msgs/msg/u_int32.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
 #include <mutex>
 #include <sstream>
@@ -21,6 +22,8 @@ NS_LOG_COMPONENT_DEFINE("LteRos2RealtimeExample");
 class Ns3RosNode;
 void ReportUeMeasurementsCallback(std::string, uint16_t, uint16_t, double,
                                   double, bool, uint8_t);
+void ConnectionEstablishedCallback(std::string, uint64_t, uint16_t, uint16_t);
+void HandoverEndOkCallback(std::string, uint64_t, uint16_t, uint16_t);
 
 class Ns3RosNode : public rclcpp::Node {
 public:
@@ -33,7 +36,8 @@ public:
     rsrp_publisher_ =
         this->create_publisher<ros_gz_interfaces::msg::Float32Array>(
             "/rsrp_values", 10);
-
+    handover_publisher_ =
+        this->create_publisher<std_msgs::msg::UInt32>("/current_cell_id", 10);
     rsrp_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(50),
         std::bind(&Ns3RosNode::publishAllRsrpValues, this));
@@ -136,6 +140,18 @@ public:
     }
   }
 
+  void notifyHandover(uint16_t newCellId) {
+    RCLCPP_INFO(this->get_logger(), "Cell change: %d -> %d", current_cell_id_,
+                newCellId);
+
+    auto msg = std_msgs::msg::UInt32();
+    msg.data = static_cast<uint32_t>(newCellId - 1);
+    handover_publisher_->publish(msg);
+
+    // Update stored cell ID
+    current_cell_id_ = newCellId;
+  }
+
   void connectUePhyTraces() {
     std::lock_guard<std::mutex> lock(node_mutex_);
     if (ueLteDevs.GetN() == 0)
@@ -153,6 +169,27 @@ public:
     uePhy->TraceConnect("ReportUeMeasurements", std::string(""),
                         MakeCallback(&ReportUeMeasurementsCallback));
     NS_LOG_UNCOND("RSRP measurement trace connected directly to UE PHY");
+  }
+
+  void connectUeRrcTraces() {
+    std::lock_guard<std::mutex> lock(node_mutex_);
+    if (ueLteDevs.GetN() == 0)
+      return;
+    Ptr<LteUeNetDevice> ueDevice =
+        DynamicCast<LteUeNetDevice>(ueLteDevs.Get(0));
+    if (!ueDevice)
+      return;
+    Ptr<LteUeRrc> ueRrc = ueDevice->GetRrc();
+    if (!ueRrc)
+      return;
+
+    ueRrc->TraceConnect("ConnectionEstablished", std::string(""),
+                        MakeCallback(&ConnectionEstablishedCallback));
+    ueRrc->TraceConnect("HandoverEndOk", std::string(""),
+                        MakeCallback(&HandoverEndOkCallback));
+
+    NS_LOG_UNCOND(
+        "UE RRC traces connected (ConnectionEstablished and HandoverEndOk)");
   }
 
 private:
@@ -183,6 +220,7 @@ private:
   ns3::Ptr<ns3::LteHelper> lteHelper;
   ns3::NetDeviceContainer ueLteDevs;
   ns3::NetDeviceContainer enbLteDevs;
+  uint16_t current_cell_id_ = 0;
   std::mutex node_mutex_;
   std::mutex rsrp_mutex_;
   std::map<uint16_t, float> rsrp_values_;
@@ -191,6 +229,7 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
   rclcpp::Publisher<ros_gz_interfaces::msg::Float32Array>::SharedPtr
       rsrp_publisher_;
+  rclcpp::Publisher<std_msgs::msg::UInt32>::SharedPtr handover_publisher_;
   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr pose_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_sub_;
   rclcpp::TimerBase::SharedPtr rsrp_timer_;
@@ -214,6 +253,24 @@ void ReportUeMeasurementsCallback(std::string, uint16_t, uint16_t cellId,
   }
 }
 
+void ConnectionEstablishedCallback(std::string context, uint64_t imsi,
+                                   uint16_t cellId, uint16_t rnti) {
+  if (g_ros_node) {
+    g_ros_node->notifyHandover(cellId);
+  }
+  NS_LOG_UNCOND("Initial connection established - IMSI: "
+                << imsi << " connected to Cell " << cellId);
+}
+
+void HandoverEndOkCallback(std::string context, uint64_t imsi, uint16_t cellId,
+                           uint16_t rnti) {
+  if (g_ros_node) {
+    g_ros_node->notifyHandover(cellId);
+  }
+  NS_LOG_UNCOND("Handover completed successfully - IMSI: "
+                << imsi << " now connected to Cell " << cellId);
+}
+
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
 
@@ -225,6 +282,13 @@ int main(int argc, char *argv[]) {
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
   Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
   lteHelper->SetEpcHelper(epcHelper);
+
+  lteHelper->SetHandoverAlgorithmType("ns3::A3RsrpHandoverAlgorithm");
+  lteHelper->SetHandoverAlgorithmAttribute("Hysteresis", DoubleValue(0.0));
+  lteHelper->SetHandoverAlgorithmAttribute("TimeToTrigger",
+                                           TimeValue(MilliSeconds(40)));
+
+  NS_LOG_UNCOND("Handover algorithm configured");
 
   Ptr<Node> pgw = epcHelper->GetPgwNode();
   NodeContainer remoteHostContainer;
@@ -261,7 +325,10 @@ int main(int argc, char *argv[]) {
   ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(0, 0, 10));
 
   NetDeviceContainer enbLteDevs = lteHelper->InstallEnbDevice(enbNodes);
+  lteHelper->AddX2Interface(enbNodes);
   NetDeviceContainer ueLteDevs = lteHelper->InstallUeDevice(ueNodes);
+
+  LogComponentEnable("A3RsrpHandoverAlgorithm", LOG_LEVEL_ALL);
 
   // TODO: Check if lowering power like this is going to affect anything other
   // than just signal strength
@@ -270,7 +337,7 @@ int main(int argc, char *argv[]) {
         DynamicCast<LteEnbNetDevice>(enbLteDevs.Get(i));
     if (enbDevice) {
       Ptr<LteEnbPhy> enbPhy = enbDevice->GetPhy();
-      enbPhy->SetTxPower(25.0); // Reduce from default ~46 dBm to 10 dBm
+      enbPhy->SetTxPower(20.0); // Reduce from default ~46 dBm to 10 dBm
     }
   }
   internet.Install(ueNodes);
@@ -356,30 +423,31 @@ int main(int argc, char *argv[]) {
     if (sink) {
       sink->TraceConnect("Rx", std::string(""),
                          MakeCallback(&PacketReceivedCallback));
-      NS_LOG_UNCOND("Packet sink trace connected");
+      // NS_LOG_UNCOND("Packet sink trace connected");
     }
   }
 
   ros_node->connectUePhyTraces();
+  ros_node->connectUeRrcTraces();
 
   Simulator::Schedule(Seconds(2.0), [ros_node]() {
     auto twist = geometry_msgs::msg::Twist();
     twist.linear.z = 1.0;
     ros_node->sendTwistOverUdp(twist);
-    NS_LOG_UNCOND("Scheduled twist: Going UP");
+    // NS_LOG_UNCOND("Scheduled twist: Going UP");
   });
 
   Simulator::Schedule(Seconds(5.0), [ros_node]() {
     auto twist = geometry_msgs::msg::Twist();
     twist.linear.x = 1.0;
     ros_node->sendTwistOverUdp(twist);
-    NS_LOG_UNCOND("Scheduled twist: Going FORWARD");
+    // NS_LOG_UNCOND("Scheduled twist: Going FORWARD");
   });
 
   Simulator::Schedule(Seconds(8.0), [ros_node]() {
     auto twist = geometry_msgs::msg::Twist();
     ros_node->sendTwistOverUdp(twist);
-    NS_LOG_UNCOND("Scheduled twist: STOP");
+    // NS_LOG_UNCOND("Scheduled twist: STOP");
   });
 
   std::thread ros_spin_thread([&]() {

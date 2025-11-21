@@ -50,6 +50,16 @@ def generate_launch_description():
             '/model/X3/pose@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V'
         ]
     )
+
+    cell_id_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='cell_id_bridge',
+        output='screen',
+        arguments=[
+            '/current_cell_id@std_msgs/msg/UInt32]gz.msgs.UInt32'
+        ]
+    )
     
     rsrp_bridge = Node(
     package='ros_gz_bridge',
@@ -97,6 +107,7 @@ def generate_launch_description():
         cmd_vel_bridge,
         pose_bridge,
         rsrp_bridge,
+        cell_id_bridge,
         ns3_node,
         quadcopter_pilot,
         #camera_follower
