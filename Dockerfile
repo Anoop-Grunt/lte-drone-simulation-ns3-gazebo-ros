@@ -39,6 +39,8 @@ run bash ./setup-ros-network-node.sh
 
 copy ./ros_network/CMakeLists.txt ./ros_network/
 copy ./ros_network/main.cc ./ros_network/src/
+copy ./ros_network/ros_node.cc ./ros_network/src/
+copy ./ros_network/ros_node.h ./ros_network/include/
 
 copy ./remote_server_nodes/setup_remote_server_nodes.sh .
 run bash ./setup_remote_server_nodes.sh
@@ -56,4 +58,4 @@ run  sh ./install_custom_gz_plugin.sh
 
 run rm -rf /var/lib/apt/lists/*
 
-
+copy ./white.png ./

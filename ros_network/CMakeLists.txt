@@ -25,7 +25,10 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(ns3_ros_node src/main.cc)
+add_executable(ns3_ros_node 
+  src/main.cc
+  src/ros_node.cc
+)
 
 ament_target_dependencies(ns3_ros_node
   rclcpp
@@ -36,8 +39,11 @@ ament_target_dependencies(ns3_ros_node
 )
 
 include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
   /app/ns3-source/build/include
 )
+
+
 
 install(TARGETS ns3_ros_node
   DESTINATION lib/${PROJECT_NAME}
