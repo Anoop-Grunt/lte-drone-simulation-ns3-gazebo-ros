@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   lteHelper->SetEpcHelper(epcHelper);
 
   lteHelper->SetHandoverAlgorithmType("ns3::A3RsrpHandoverAlgorithm");
-  lteHelper->SetHandoverAlgorithmAttribute("Hysteresis", DoubleValue(0.0));
+  lteHelper->SetHandoverAlgorithmAttribute("Hysteresis", DoubleValue(3.0));
   lteHelper->SetHandoverAlgorithmAttribute("TimeToTrigger",
                                            TimeValue(MilliSeconds(40)));
 
@@ -54,17 +54,27 @@ int main(int argc, char *argv[]) {
   enbNodes.Create(3);
   ueNodes.Create(1);
 
+  NodeContainer destNode; // NEW
+  destNode.Create(1);
+
   MobilityHelper enbMobility;
   enbMobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   enbMobility.Install(enbNodes);
-  enbNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(0, 0, 0));
-  enbNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(Vector(150, 0, 0));
-  enbNodes.Get(2)->GetObject<MobilityModel>()->SetPosition(Vector(75, 150, 0));
+  enbNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(15, 135, 0));
+  enbNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(Vector(135, 135, 0));
+  enbNodes.Get(2)->GetObject<MobilityModel>()->SetPosition(Vector(15, 15, -5));
 
   MobilityHelper ueMobility;
   ueMobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   ueMobility.Install(ueNodes);
-  ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(0, 0, 10));
+  ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(10, 140, 10));
+
+  MobilityHelper destMob;                                         // NEW
+  destMob.SetMobilityModel("ns3::ConstantPositionMobilityModel"); // NEW
+  destMob.Install(destNode);                                      // NEW
+  destNode.Get(0)
+      ->GetObject<MobilityModel>() // NEW
+      ->SetPosition(Vector(140, 10, 0));
 
   NetDeviceContainer enbLteDevs = lteHelper->InstallEnbDevice(enbNodes);
   lteHelper->AddX2Interface(enbNodes);
@@ -148,9 +158,13 @@ int main(int argc, char *argv[]) {
   anim.UpdateNodeColor(enbNodes.Get(2), 255, 200, 0);
   anim.UpdateNodeColor(ueNodes.Get(0), 0, 0, 255);
 
-  anim.SetConstantPosition(enbNodes.Get(0), 0, 0);
-  anim.SetConstantPosition(enbNodes.Get(1), 150, 0);
-  anim.SetConstantPosition(enbNodes.Get(2), 70, 150);
+  anim.SetConstantPosition(enbNodes.Get(0), 15, 135);
+  anim.SetConstantPosition(enbNodes.Get(1), 135, 135);
+  anim.SetConstantPosition(enbNodes.Get(2), 15, 15);
+
+  anim.UpdateNodeDescription(destNode.Get(0), "DEST"); // NEW
+  anim.UpdateNodeColor(destNode.Get(0), 0, 180, 0);    // NEW
+  anim.SetConstantPosition(destNode.Get(0), 140, 10);
 
   // Create UDP socket for remote host
   Ptr<Socket> udpSocket = Socket::CreateSocket(

@@ -58,4 +58,3 @@ run  sh ./install_custom_gz_plugin.sh
 
 run rm -rf /var/lib/apt/lists/*
 
-copy ./white.png ./
