@@ -1,0 +1,125 @@
+
+digraph UAV_Architecture {
+  rankdir=LR;
+  splines=true;
+  nodesep=0.8; ranksep=1.2;
+  fontname="Consolas";
+  bgcolor="transparent";
+
+  node [
+    shape=rect,
+    style="filled",
+    color="#FFFFFF",
+    fillcolor="#B388EB88",
+    fontname="Consolas",
+    fontsize=16,
+    fontcolor="#FFFFFF"
+  ];
+
+  edge [
+    color="#FFFFFF",
+    penwidth=1.4,
+    fontname="Consolas",
+    fontsize=14,
+    fontcolor="#FFFFFF",
+    labelfloat=true
+  ];
+
+  graph [
+    fontname="Consolas",
+    fontsize=18,
+    fontcolor="#FFFFFF",
+    color="#FFFFFF"
+  ];
+
+  /* === Gazebo + GUI === */
+  subgraph cluster_gz {
+    label="Gazebo World + GUI 🧩";
+    color="#FFFFFF"; fontcolor="#FFFFFF";
+    UAV   [label="🛸 UAV model X3"];
+    WPTC  [label="🧭 Waypoint Consumer"];
+    GUI   [label="🖥️ GUI Plugin\n(RSRP + current eNB)"];
+  }
+
+  /* === ros-gz-bridge === */
+  subgraph cluster_bridge {
+    label="ros-gz-bridge 🔗";
+    color="#FFFFFF"; fontcolor="#FFFFFF";
+    pose_bridge    [label="📡 pose_bridge\n/model/X3/pose ↔ /uav/pose"];
+    cmd_vel_bridge [label="🎮 cmd_vel_bridge\n/X3/cmd_vel ↔ /cmd_vel"];
+    rsrp_bridge    [label="📶 rsrp_bridge\n/rsrp_values ↔ gz"];
+    cell_id_bridge [label="🏷️ cell_id_bridge\n/current_cell_id ↔ gz"];
+    wpts_bridge    [label="🗺️ waypoints_bridge\n/planned_waypoints ↔ /gz_waypoints"];
+  }
+
+  /* === ROS Core Topics === */
+  subgraph cluster_ros {
+    label="ROS Topics Layer 🧠";
+    color="#FFFFFF"; fontcolor="#FFFFFF";
+    t_cmd    [label="/remote_movement_commands"];
+    t_pose   [label="/uav/pose"];
+    t_rsrp   [label="/rsrp_values"];
+    t_ho     [label="/handover_events"];
+    t_cell   [label="/current_cell_id"];
+    t_wpts   [label="/planned_waypoints"];
+    t_cmdvel [label="/cmd_vel"];                 /* <-- added ROS /cmd_vel topic */
+  }
+
+  /* === External Control Scripts === */
+  subgraph cluster_ext {
+    label="External Control Scripts 🤖";
+    color="#FFFFFF"; fontcolor="#FFFFFF";
+    Pilot     [label="🎮 RLPilotAgentScript"];
+    RLPlanner [label="🧮 RLPlanner"];
+  }
+
+  /* === ns-3 LTE/EPC Simulation === */
+  subgraph cluster_ns3 {
+    label="ns-3 LTE/EPC Simulation 🌐";
+    color="#FFFFFF"; fontcolor="#FFFFFF";
+
+    subgraph cluster_ran {
+      label="RAN: eNodeBs 📶";
+      color="#FFFFFF"; fontcolor="#FFFFFF";
+      eNB1 [label="📡 eNodeB 1"];
+      eNB2 [label="📡 eNodeB 2"];
+      eNBN [label="📡 eNodeB N"];
+    }
+    UE      [label="🛸 UE (UAV network iface)"];
+    EPC     [label="💾 Packet Core\n(SGW/PGW)"];
+    RServer [label="🖥️ Remote Server\n(inside ns-3, UDP to PGW)"];
+  }
+
+  /* === Connections (labels via xlabels) === */
+  UAV -> pose_bridge         [xlabel="pose"];
+  pose_bridge -> t_pose;
+  /* ROS /cmd_vel path: UE publishes → ROS topic → bridge → Gazebo */
+  UE -> t_cmdvel             [xlabel="publish"];          /* <-- UE publishes to /cmd_vel */
+  t_cmdvel -> cmd_vel_bridge [xlabel="bridge to Gazebo"]; /* <-- bridged */
+  cmd_vel_bridge -> UAV      [xlabel="cmd_vel"];          /* <-- delivered to Gazebo */
+
+  t_rsrp -> rsrp_bridge      [xlabel="RSRP"];
+  rsrp_bridge -> GUI         [xlabel="to GUI"];
+  t_cell -> cell_id_bridge   [xlabel="cell ID"];
+  cell_id_bridge -> GUI      [xlabel="to GUI"];
+  t_wpts -> wpts_bridge      [xlabel="waypoints"];
+  wpts_bridge -> WPTC        [xlabel="to Gazebo"];
+
+  Pilot -> t_cmd             [xlabel="publish"];
+  RLPlanner -> t_wpts        [xlabel="publish"];
+
+  t_cmd -> RServer           [xlabel="NS3 subscribes"];
+  t_pose -> UE               [xlabel="NS3 subscribes"];
+
+  UE -> t_rsrp               [xlabel="RSRP"];
+  UE -> t_ho                 [xlabel="handover"];
+  UE -> t_cell               [xlabel="current eNB"];
+
+  RServer -> EPC             [xlabel="UDP control/data"];
+  EPC -> eNB1;
+  EPC -> eNB2;
+  EPC -> eNBN;
+  eNB1 -> UE [style=dashed, xlabel="LTE link"];
+  eNB2 -> UE [style=dashed, xlabel="LTE link"];
+  eNBN -> UE [style=dashed, xlabel="LTE link"];
+}
