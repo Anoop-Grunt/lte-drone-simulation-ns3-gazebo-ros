@@ -1,6 +1,7 @@
 . ./variables.sh
 xhost +local:docker
 docker run -ti \
+  --privileged \
   --rm \
   -u root:root \
   --name gazebo-sim \
@@ -14,15 +15,15 @@ docker run -ti \
   -e LIBGL_ALWAYS_INDIRECT=0 \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v $(pwd)/sim_and_bridge_clean.launch.py:/tmp/sim_and_bridge.launch.py \
-  -v $(pwd)/worlds/world.sdf/:/app/world.sdf \
+  -v $(pwd)/worlds/world.sdf:/app/world.sdf \
+  -v $(pwd)/worlds/world_with_waypoints.sdf:/app/world_with_waypoints.sdf \
   -v $(pwd)/debugger_config.config:/app/debugger_config.config \
   -v $(pwd)/network_animations/:/app/network_animations/ \
   -v $(pwd)/models:/app/models \
   -v $(pwd)/logs:/app/logs \
   -v $(pwd)/plots:/app/plots \
-  gz-ros-jazzy-base\
+  gz-ros-jazzy-base \
   bash -c "mkdir -p /run/user/0 && chmod 0700 /run/user/0 && \
            source /opt/ros/jazzy/setup.bash && \
            source /app/install/setup.bash && \
-           ros2 launch /tmp/sim_and_bridge.launch.py  & \
-           bash"
+           ros2 launch /tmp/sim_and_bridge.launch.py"
