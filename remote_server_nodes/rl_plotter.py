@@ -27,7 +27,7 @@ def plot_good_signal_percentage(data, title, save_path, mode='training'):
         successful = [ep for ep in data if ep.get('success', True)]
     
     if not successful:
-        print(f"⚠️ No successful episodes found for {title}")
+        print(f"No successful episodes found for {title}")
         return
     
     episodes = np.array([ep['episode'] for ep in successful])
@@ -123,7 +123,7 @@ def plot_good_signal_percentage(data, title, save_path, mode='training'):
     
     plt.tight_layout()
     plt.savefig(save_path, dpi=600, bbox_inches='tight', facecolor='#FDFCFF')  # High DPI for PPT
-    print(f"✅ Saved: {save_path}")
+    print(f"Saved: {save_path}")
     plt.close()
 
 
@@ -138,7 +138,7 @@ def plot_average_rsrp(data, title, save_path, mode='training'):
         successful = [ep for ep in data if ep.get('success', True)]
     
     if not successful:
-        print(f"⚠️ No successful episodes found for {title}")
+        print(f"No successful episodes found for {title}")
         return
     
     episodes = np.array([ep['episode'] for ep in successful])
@@ -224,7 +224,7 @@ def plot_average_rsrp(data, title, save_path, mode='training'):
     
     plt.tight_layout()
     plt.savefig(save_path, dpi=600, bbox_inches='tight', facecolor='#FDFCFF')  # High DPI for PPT
-    print(f"✅ Saved: {save_path}")
+    print(f"Saved: {save_path}")
     plt.close()
 
 
@@ -241,7 +241,7 @@ def main():
     args = parser.parse_args()
     
     # Load data
-    print("📂 Loading data...")
+    print("Loading data...")
     with open(args.training, 'r') as f:
         training_data = json.load(f)
     print(f"   Training: {len(training_data)} episodes")
@@ -255,7 +255,7 @@ def main():
     os.makedirs(args.output, exist_ok=True)
     
     print("\n" + "=" * 70)
-    print("📊 GENERATING 4 FOCUSED PLOTS")
+    print("GENERATING 4 FOCUSED PLOTS")
     print("=" * 70)
     
     # Graph 1: Training - Good Signal %
@@ -291,11 +291,11 @@ def main():
     )
     
     print("=" * 70)
-    print(f"✅ All 4 plots saved to: {args.output}/")
+    print(f"All 4 plots saved to: {args.output}/")
     print("=" * 70)
     
     # Print summary statistics
-    print("\n📈 SUMMARY STATISTICS")
+    print("\nSUMMARY STATISTICS")
     print("=" * 70)
     
     # Training stats
@@ -305,7 +305,7 @@ def main():
                              for ep in train_success if ep['steps'] > 0]
         train_rsrp = [ep['avg_rsrp'] for ep in train_success]
         
-        print(f"\n🎓 TRAINING ({len(train_success)} successful episodes):")
+        print(f"\nTRAINING ({len(train_success)} successful episodes):")
         print(f"   Good Signal %: {np.mean(train_good_signal):.1f}% (avg)")
         print(f"   Average RSRP:  {np.mean(train_rsrp):.1f} dBm (avg)")
     
@@ -316,12 +316,12 @@ def main():
                             for ep in test_success if ep['steps'] > 0]
         test_rsrp = [ep['avg_rsrp'] for ep in test_success]
         
-        print(f"\n🧪 TESTING ({len(test_success)} successful episodes):")
+        print(f"\nTESTING ({len(test_success)} successful episodes):")
         print(f"   Good Signal %: {np.mean(test_good_signal):.1f}% (avg)")
         print(f"   Average RSRP:  {np.mean(test_rsrp):.1f} dBm (avg)")
     
     print("\n" + "=" * 70)
-    print("✅ Done! Check the plots folder.")
+    print("Done! Check the plots folder.")
     print("=" * 70)
 
 

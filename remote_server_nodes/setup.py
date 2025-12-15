@@ -27,6 +27,7 @@ setup(
             'quadcopter_pilot = remote_server_nodes.quadcopter_pilot:main',
             'camera_follower = remote_server_nodes.follow_cam:main',
             'autonomous_pilot = remote_server_nodes.autonomous_pilot:main',
+            'diagonal_pilot = remote_server_nodes.diagonal_pilot:main',
             'rl_pilot = remote_server_nodes.rl_pilot:main',
             'rl_test = remote_server_nodes.rl_test:main',
             'rl_plotter = remote_server_nodes.rl_plotter:main',

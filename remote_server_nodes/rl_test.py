@@ -31,18 +31,18 @@ class RLTestPilot(Node):
             import glob
             q_tables = sorted(glob.glob('/app/models/q_table_*.pkl'))
             if not q_tables:
-                self.get_logger().error("❌ No Q-table files found in /app/models/")
+                self.get_logger().error("No Q-table files found in /app/models/")
                 raise FileNotFoundError("No Q-table found. Train a model first using rl_pilot.")
             q_table_path = q_tables[-1]  # Get most recent by filename (sorted)
-            self.get_logger().info(f"🔍 Auto-detected Q-table: {q_table_path}")
+            self.get_logger().info(f"Auto-detected Q-table: {q_table_path}")
         
         try:
             with open(q_table_path, 'rb') as f:
                 self.q_table = pickle.load(f)
-            self.get_logger().info(f"✅ Loaded Q-table: {q_table_path}")
+            self.get_logger().info(f"Loaded Q-table: {q_table_path}")
             self.get_logger().info(f"   Q-table size: {len(self.q_table)} states")
         except Exception as e:
-            self.get_logger().error(f"❌ Failed to load Q-table: {e}")
+            self.get_logger().error(f"Failed to load Q-table: {e}")
             raise
         
         # ============ SCENARIO ============
@@ -107,15 +107,15 @@ class RLTestPilot(Node):
     def _print_startup(self):
         """Print test configuration"""
         self.get_logger().info("=" * 70)
-        self.get_logger().info("🧪 RL TEST MODE - Evaluating Trained Policy")
+        self.get_logger().info("RL TEST MODE - Evaluating Trained Policy")
         self.get_logger().info("=" * 70)
-        self.get_logger().info(f"📍 Start: ({self.source[0]}, {self.source[1]}, {self.source[2]})")
-        self.get_logger().info(f"🎯 Goal: ({self.destination[0]}, {self.destination[1]}, {self.destination[2]})")
+        self.get_logger().info(f"Start: ({self.source[0]}, {self.source[1]}, {self.source[2]})")
+        self.get_logger().info(f"Goal: ({self.destination[0]}, {self.destination[1]}, {self.destination[2]})")
         distance = np.linalg.norm(self.destination - self.source)
-        self.get_logger().info(f"📏 Distance: {distance:.1f}m")
-        self.get_logger().info(f"🧪 Test Episodes: {self.num_episodes}")
-        self.get_logger().info(f"🎲 Epsilon: {self.epsilon} (pure exploitation)")
-        self.get_logger().info(f"📚 Q-table states: {len(self.q_table)}")
+        self.get_logger().info(f"Distance: {distance:.1f}m")
+        self.get_logger().info(f"Test Episodes: {self.num_episodes}")
+        self.get_logger().info(f"Epsilon: {self.epsilon} (pure exploitation)")
+        self.get_logger().info(f"Q-table states: {len(self.q_table)}")
         self.get_logger().info("=" * 70)
     
     # ============ STATE REPRESENTATION ============
@@ -173,7 +173,7 @@ class RLTestPilot(Node):
         """
         if state not in self.q_table:
             # State never seen in training - use goal-directed heuristic
-            self.get_logger().debug(f"⚠️ Unseen state: {state} - using heuristic")
+            self.get_logger().debug(f"Unseen state: {state} - using heuristic")
             
             dx = self.destination[0] - self.current_pos[0]
             dy = self.destination[1] - self.current_pos[1]
@@ -245,13 +245,13 @@ class RLTestPilot(Node):
                     
                     if is_ping_pong:
                         self.episode_ping_pongs += 1
-                        self.get_logger().info(f"⚠️ PING-PONG: eNB{self._last_cell} ↔ eNB{current_cell}")
+                        self.get_logger().info(f"PING-PONG: eNB{self._last_cell} ↔ eNB{current_cell}")
                     
                     self.episode_handovers += 1
                     self.handover_history.append(self._last_cell)
                     
                     if not is_ping_pong:
-                        self.get_logger().info(f"📶 HO#{self.episode_handovers}: eNB{self._last_cell} → eNB{current_cell}")
+                        self.get_logger().info(f"HO#{self.episode_handovers}: eNB{self._last_cell} → eNB{current_cell}")
             
             self._last_cell = current_cell
     
@@ -283,7 +283,7 @@ class RLTestPilot(Node):
                     self.episode_start_time = self.get_clock().now()
                     
                     distance = np.linalg.norm(self.current_pos[:2] - self.destination[:2])
-                    self.get_logger().info(f"🧪 Test Episode {self.current_episode+1}/{self.num_episodes} started!")
+                    self.get_logger().info(f"Test Episode {self.current_episode+1}/{self.num_episodes} started!")
                     self.get_logger().info(f"   Position: ({self.current_pos[0]:.1f}, {self.current_pos[1]:.1f}, {self.current_pos[2]:.1f})")
                     self.get_logger().info(f"   Distance to goal: {distance:.1f}m")
                     self.episode_started = True
@@ -317,13 +317,13 @@ class RLTestPilot(Node):
         if len(self.progress_window) == self.progress_window.maxlen:
             progress = self.progress_window[0] - self.progress_window[-1]
             if progress < 0.5 and self.current_step > 100:
-                self.get_logger().info(f"⏸️ No progress timeout")
+                self.get_logger().info(f"No progress timeout")
                 self.end_episode(reached_goal=False)
                 return
         
         # Hard step limit
         if self.current_step >= 500:
-            self.get_logger().info("⏱️ Max steps timeout")
+            self.get_logger().info("Max steps timeout")
             self.end_episode(reached_goal=False)
             return
         
@@ -401,7 +401,7 @@ class RLTestPilot(Node):
         
         # Print summary
         self.get_logger().info("\n" + "=" * 60)
-        self.get_logger().info(f"Test Episode {self.current_episode+1}/{self.num_episodes}: {'✅ SUCCESS!' if reached_goal else '⏱️ TIMEOUT'}")
+        self.get_logger().info(f"Test Episode {self.current_episode+1}/{self.num_episodes}: {'SUCCESS!' if reached_goal else 'TIMEOUT'}")
         self.get_logger().info(f"  Time: {elapsed:.1f}s | Steps: {self.current_step}")
         self.get_logger().info(f"  Progress: {progress:.1f}m ({progress_pct:.0f}%)")
         self.get_logger().info(f"  Final dist: {distance:.1f}m")
@@ -450,24 +450,24 @@ class RLTestPilot(Node):
             if hasattr(self, '_last_cell'):
                 self._last_cell = None
             
-            self.get_logger().info(f"\n🔄 Resetting for Test Episode {self.current_episode+1}...")
+            self.get_logger().info(f"\nResetting for Test Episode {self.current_episode+1}...")
             reset_success = self.reset_uav_in_gazebo()
             
             if reset_success:
-                self.get_logger().info("✅ Reset successful!")
+                self.get_logger().info("Reset successful!")
             else:
-                self.get_logger().warn("⚠️ Reset failed, waiting...")
+                self.get_logger().warn("Reset failed, waiting...")
             
             import time
             time.sleep(3.0)
-            self.get_logger().info(f"▶️ Starting Test Episode {self.current_episode+1}...\n")
+            self.get_logger().info(f"Starting Test Episode {self.current_episode+1}...\n")
         else:
             self.finish_testing()
     
     def finish_testing(self):
         """Testing complete"""
         self.get_logger().info("\n" + "=" * 70)
-        self.get_logger().info("🧪 TESTING COMPLETE!")
+        self.get_logger().info("TESTING COMPLETE!")
         self.get_logger().info("=" * 70)
         
         # Save results
@@ -483,7 +483,7 @@ class RLTestPilot(Node):
         # Print summary
         successes = [ep for ep in self.test_results if ep['success']]
         
-        self.get_logger().info(f"\n📊 TEST SUMMARY:")
+        self.get_logger().info(f"\nTEST SUMMARY:")
         self.get_logger().info(f"  Success rate: {len(successes)}/{len(self.test_results)} ({100*len(successes)/len(self.test_results):.1f}%)")
         
         if successes:
@@ -517,7 +517,7 @@ def main(args=None):
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("\n⚠️ Interrupted by user")
+        node.get_logger().info("\nInterrupted by user")
     finally:
         node.destroy_node()
         if rclpy.ok():

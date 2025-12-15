@@ -50,6 +50,7 @@ copy ./remote_server_nodes/follow_cam.py ./remote_server_nodes/remote_server_nod
 copy ./remote_server_nodes/setup.py ./remote_server_nodes/
 
 COPY ./remote_server_nodes/autonomous_pilot.py ./remote_server_nodes/remote_server_nodes/
+COPY ./remote_server_nodes/diagonal_pilot.py ./remote_server_nodes/remote_server_nodes/
 COPY ./remote_server_nodes/rl_pilot.py ./remote_server_nodes/remote_server_nodes/
 COPY ./remote_server_nodes/rl_test.py ./remote_server_nodes/remote_server_nodes/
 COPY ./remote_server_nodes/rl_plotter.py ./remote_server_nodes/remote_server_nodes/
