@@ -17,6 +17,9 @@ docker run -ti \
   -v $(pwd)/worlds/world.sdf/:/app/world.sdf \
   -v $(pwd)/debugger_config.config:/app/debugger_config.config \
   -v $(pwd)/network_animations/:/app/network_animations/ \
+  -v $(pwd)/models:/app/models \
+  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/plots:/app/plots \
   gz-ros-jazzy-base\
   bash -c "mkdir -p /run/user/0 && chmod 0700 /run/user/0 && \
            source /opt/ros/jazzy/setup.bash && \

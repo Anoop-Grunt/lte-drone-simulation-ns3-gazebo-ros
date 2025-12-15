@@ -335,5 +335,87 @@
       <scale>5 50 5</scale>
     </include>
 
+
+    <!-- Curved path made of small cylinders -->
+    <model name="path_curve_classic">
+      <static>true</static>
+      <link name="link">
+
+        <!-- connect each pair of points with a slim green cylinder -->
+        <!-- You can reuse the same material block for each -->
+
+        <visual name="seg0">
+          <pose>22.5 140 10 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.3</radius>
+              <length>25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <diffuse>0 0.8 0 1</diffuse>
+            <emissive>0 0.3 0 1</emissive>
+          </material>
+        </visual>
+
+        <visual name="seg1">
+          <pose>50 139 10 0 0 -0.1</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.3</radius>
+              <length>30</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <diffuse>0 0.8 0 1</diffuse>
+            <emissive>0 0.3 0 1</emissive>
+          </material>
+        </visual>
+
+        <visual name="seg2">
+          <pose>80 135 10 0 0 -0.25</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.3</radius>
+              <length>28</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <diffuse>0 0.8 0 1</diffuse>
+            <emissive>0 0.3 0 1</emissive>
+          </material>
+        </visual>
+
+        <visual name="seg3">
+          <pose>108 120 10 0 0 -0.6</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.3</radius>
+              <length>35</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <diffuse>0 0.8 0 1</diffuse>
+            <emissive>0 0.3 0 1</emissive>
+          </material>
+        </visual>
+
+        <visual name="seg4">
+          <pose>135 90 10 0 0 -1.0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.3</radius>
+              <length>40</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <diffuse>0 0.8 0 1</diffuse>
+            <emissive>0 0.3 0 1</emissive>
+          </material>
+        </visual>
+
+      </link>
+    </model>
+
   </world>
 </sdf>

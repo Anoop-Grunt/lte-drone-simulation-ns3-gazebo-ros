@@ -49,6 +49,11 @@ copy ./remote_server_nodes/quadcopter_pilot.py ./remote_server_nodes/remote_serv
 copy ./remote_server_nodes/follow_cam.py ./remote_server_nodes/remote_server_nodes/
 copy ./remote_server_nodes/setup.py ./remote_server_nodes/
 
+COPY ./remote_server_nodes/autonomous_pilot.py ./remote_server_nodes/remote_server_nodes/
+COPY ./remote_server_nodes/rl_pilot.py ./remote_server_nodes/remote_server_nodes/
+COPY ./remote_server_nodes/rl_test.py ./remote_server_nodes/remote_server_nodes/
+COPY ./remote_server_nodes/rl_plotter.py ./remote_server_nodes/remote_server_nodes/
+
 copy ./build-ros-nodes.sh .
 run bash ./build-ros-nodes.sh 
 
