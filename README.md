@@ -20,7 +20,7 @@ graph TB
         X11["X11 Socket<br/>/tmp/.X11-unix"]
     end
     
-    subgraph Docker["Docker Container (gz-ros-harmonic)"]
+    subgraph Docker["Docker Container (gz-ros-jazzy-base)"]
         subgraph NS3["NS-3 Simulator"]
             NS3_LTE["LTE Network<br/>3x eNodeB + 1x UE"]
             RSRP_TRACE["RSRP Measurement<br/>Callback"]
@@ -158,6 +158,7 @@ The system supports multiple pilot modes, selectable via the `control_mode` laun
   - Saves Q-table after training
   - Logs training history to JSON
 - **World File**: `world.sdf` (auto-selected, no waypoints)
+- **Status**: Enhancements ongoing (reward tuning, exploration/exploitation balance, and handover handling are still being improved)
 
 ##### 5. **RL Test Pilot** (`control_mode:=rl_test`)
 - **Node**: `RLTest`
@@ -305,7 +306,7 @@ This closed-loop synchronization keeps the network simulation and visual simulat
 The Docker image contains all dependencies and builds all components:
 
 ```bash
-docker build -t gz-ros-harmonic .
+docker build -t gz-ros-jazzy-base .
 ```
 
 **Build Process** (executed inside Docker during image build):
@@ -359,7 +360,10 @@ docker run -ti \
   -v $(pwd)/worlds/world_with_waypoints.sdf:/app/world_with_waypoints.sdf \
   -v $(pwd)/debugger_config.config:/app/debugger_config.config \
   -v $(pwd)/network_animations/:/app/network_animations/ \
-  gz-ros-harmonic \
+  -v $(pwd)/models:/app/models \
+  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/plots:/app/plots \
+  gz-ros-jazzy-base \
   bash -c "mkdir -p /run/user/0 && chmod 0700 /run/user/0 && \
            source /opt/ros/jazzy/setup.bash && \
            source /app/install/setup.bash && \
@@ -378,6 +382,9 @@ docker run -ti \
 | `./worlds/world_with_waypoints.sdf` | `/app/world_with_waypoints.sdf` | Gazebo world (other modes) |
 | `./debugger_config.config` | `/app/debugger_config.config` | Gazebo GUI layout config |
 | `./network_animations/` | `/app/network_animations/` | NS-3 animation output |
+| `./models/` | `/app/models/` | Saved Q-tables and models |
+| `./logs/` | `/app/logs/` | Training/test logs |
+| `./plots/` | `/app/plots/` | Generated plots |
 
 ## Usage
 
